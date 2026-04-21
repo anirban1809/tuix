@@ -122,11 +122,11 @@ func (s *Screen) Flush() {
 }
 
 func (s Screen) Clear() {
-	for i := range s.height {
-		for j := range s.width {
-			s.cells[i][j].Rune = ' '
-			s.cells[i][j].Wide = false
-			s.cells[i][j].Style = Style{}
+	for x := range s.width {
+		for y := range s.height {
+			s.cells[x][y].Rune = ' '
+			s.cells[x][y].Wide = false
+			s.cells[x][y].Style = Style{}
 		}
 	}
 }
