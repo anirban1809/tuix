@@ -12,7 +12,7 @@ import (
 type Screen struct {
 	height int
 	width  int
-	out    *io.Writer
+	out    io.Writer
 
 	cells [][]Cell
 	prev  [][]Cell
@@ -45,7 +45,7 @@ func NewScreenWriter(width int, height int, out io.Writer) *Screen {
 	return &Screen{
 		height: height,
 		width:  width,
-		out:    &out,
+		out:    out,
 
 		cells: makeCellGrid(width, height),
 		prev:  makeCellGrid(width, height),
@@ -75,12 +75,12 @@ func (s *Screen) Start() {
 	s.oldState = oldState
 
 	//hide cursor
-	fmt.Fprintf(*s.out, "\033[?25l")
+	fmt.Fprintf(s.out, "\033[?25l")
 }
 
 func (s Screen) Stop() {
 	//show cursor
-	fmt.Fprintf(*s.out, "\033[?25h")
+	fmt.Fprintf(s.out, "\033[?25h")
 
 	//restore terminal old state
 	term.Restore(int(os.Stdin.Fd()), s.oldState)
@@ -113,8 +113,8 @@ func (s *Screen) Flush() {
 				continue
 			}
 
-			fmt.Fprintf(*s.out, "\033[%d;%dH", y+1, x+1)
-			fmt.Fprintf(*s.out, "%s%c\033[0m", curr.Style.ANSIPrefix(), curr.Rune)
+			fmt.Fprintf(s.out, "\033[%d;%dH", y+1, x+1)
+			fmt.Fprintf(s.out, "%s%c\033[0m", curr.Style.ANSIPrefix(), curr.Rune)
 			s.prev[x][y] = curr
 		}
 	}
@@ -133,4 +133,15 @@ func (s Screen) Clear() {
 
 func RuneWidth(value rune) int {
 	return runewidth.RuneWidth(value)
+}
+
+func (s *Screen) SetDimensions(width, height int) {
+	s.width = width
+	s.height = height
+	s.cells = makeCellGrid(width, height)
+	s.prev = makeCellGrid(width, height)
+}
+
+var StdOutScreen *Screen = &Screen{
+	out: os.Stdout,
 }

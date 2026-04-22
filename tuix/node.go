@@ -38,15 +38,18 @@ type LayoutProps struct {
 }
 
 type Node struct {
-	Element  Element
-	Rect     Rect
-	Children []*Node
-	Parent   *Node
+	Element   Element
+	Rect      Rect
+	Children  []*Node
+	Parent    *Node
+	HookState HookState
 }
 
 func createNode(element Element) *Node {
 	var children []*Node
-	node := &Node{}
+	node := &Node{
+		HookState: HookState{},
+	}
 
 	for _, child := range element.Children {
 		childNode := createNode(child)

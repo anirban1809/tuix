@@ -32,11 +32,9 @@ func Text(text string, style Style) Element {
 // Component wraps a render function and its props into an Element.
 // The reconciler calls Render(props) to produce the concrete subtree.
 func Component(fn func(Props) []Element, props Props) Element {
+	children := fn(props)
 	return Element{
-		Type: ElementComponent,
-		Render: func(e Element) Element {
-			children := fn(props)
-			return Box(Props{}, children...)
-		},
+		Type:     ElementComponent,
+		Children: children,
 	}
 }

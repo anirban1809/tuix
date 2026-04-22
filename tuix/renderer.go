@@ -1,16 +1,18 @@
 package tuix
 
-type Renderer struct {
+type ComponentRenderer struct {
 	screen *Screen
 	root   *Node
+	dirty  chan struct{}
 }
 
-func NewRenderer(screen *Screen) *Renderer {
-	return &Renderer{screen: screen}
+func NewRenderer(screen *Screen) *ComponentRenderer {
+	return &ComponentRenderer{screen: screen, dirty: make(chan struct{})}
 }
 
-func (r *Renderer) Render(next Element) {
+func (r *ComponentRenderer) Render(next Element) {
 	r.root, _ = Reconcile(r.root, next)
+	currentNode = r.root
 
 	available := Rect{X: 0, Y: 0, Width: r.screen.Width(), Height: r.screen.Height()}
 	layoutRoot := buildLayoutTree(r.root)
@@ -73,3 +75,5 @@ func paint(node *Node, rects []Rect, idx int, screen *Screen) int {
 	}
 	return idx
 }
+
+var Renderer = NewRenderer(StdOutScreen)

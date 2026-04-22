@@ -8,14 +8,17 @@ func Reconcile(old *Node, next Element) (root *Node, deletions []*Node) {
 }
 
 func buildTree(next Element, parent *Node) *Node {
+	node := createNode(next)
+	currentNode = node
 	if next.Type == ElementComponent && next.Render != nil {
 		next = next.Render(next)
 	}
-	node := createNode(next)
+
 	node.Parent = parent
 	if parent != nil {
 		parent.Children = append(parent.Children, node)
 	}
+
 	return node
 }
 
@@ -93,5 +96,7 @@ func diffNode(old *Node, next Element, parent *Node) (*Node, []*Node) {
 
 	// Diff children.
 	old.Children, deletions = diffChildren(old.Children, next.Children, old)
+
+	currentNode = old
 	return old, deletions
 }
