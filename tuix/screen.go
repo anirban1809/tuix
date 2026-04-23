@@ -70,6 +70,8 @@ func (s *Screen) Resize(width int, height int) {
 }
 
 func (s *Screen) Start() {
+	fmt.Print("\033[H\033[2J\033[3J") /* clear the screen */
+
 	//enable raw mode
 	oldState, _ := term.MakeRaw(int(os.Stdin.Fd()))
 	s.oldState = oldState

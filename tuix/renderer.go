@@ -2,7 +2,6 @@ package tuix
 
 type ComponentRenderer struct {
 	screen *Screen
-	root   *Node
 	dirty  chan struct{}
 }
 
@@ -11,19 +10,16 @@ func NewRenderer(screen *Screen) *ComponentRenderer {
 }
 
 func (r *ComponentRenderer) Render(next Element) {
-	r.root, _ = Reconcile(r.root, next)
-	currentNode = r.root
-
 	available := Rect{X: 0, Y: 0, Width: r.screen.Width(), Height: r.screen.Height()}
-	layoutRoot := buildLayoutTree(r.root)
+	layoutRoot := buildLayoutTree(next)
 	rects := ComputeLayout(layoutRoot, available)
 
 	r.screen.Clear()
-	paint(r.root, rects, 0, r.screen)
+	paint(next, rects, 0, r.screen)
 }
 
-func buildLayoutTree(node *Node) *LayoutNode {
-	p := node.Element.Layout
+func buildLayoutTree(element Element) *LayoutNode {
+	p := element.Layout
 	l := &LayoutNode{
 		Direction:     p.Direction,
 		WidthSizing:   p.WidthSizing,
@@ -37,16 +33,16 @@ func buildLayoutTree(node *Node) *LayoutNode {
 		justify:       p.Justify,
 	}
 
-	if node.Element.Text != "" {
+	if element.Text != "" {
 		w := 0
-		for _, ch := range node.Element.Text {
+		for _, ch := range element.Text {
 			w += RuneWidth(ch)
 		}
 		l.WidthSizing = Fixed(w)
 		l.HeightSizing = Fixed(1)
 	}
 
-	for _, child := range node.Children {
+	for _, child := range element.Children {
 		l.Children = append(l.Children, buildLayoutTree(child))
 	}
 	return l
@@ -54,23 +50,22 @@ func buildLayoutTree(node *Node) *LayoutNode {
 
 // paint walks the node tree in depth-first pre-order, matching the same
 // traversal order that ComputeLayout uses to produce rects.
-func paint(node *Node, rects []Rect, idx int, screen *Screen) int {
+func paint(element Element, rects []Rect, idx int, screen *Screen) int {
 	rect := rects[idx]
-	node.Rect = rect
 	idx++
 
-	if node.Element.Text != "" {
+	if element.Text != "" {
 		x := rect.X
-		for _, ch := range node.Element.Text {
+		for _, ch := range element.Text {
 			if x >= rect.X+rect.Width {
 				break
 			}
-			screen.SetCell(x, rect.Y, ch, node.Element.Style)
+			screen.SetCell(x, rect.Y, ch, element.Style)
 			x += RuneWidth(ch)
 		}
 	}
 
-	for _, child := range node.Children {
+	for _, child := range element.Children {
 		idx = paint(child, rects, idx, screen)
 	}
 	return idx

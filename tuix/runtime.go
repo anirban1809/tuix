@@ -13,10 +13,12 @@ func NewApp(width, height int) *App {
 	}
 }
 
-func (a *App) Run(fn func(Props) []Element) {
-	next := Component(fn, Props{})
+var ElementsTable map[string]bool
+
+func (a *App) Run(fn func() Element) {
+	StateCursor = 0
+	next := fn()
 
 	Renderer.Render(next)
 	StdOutScreen.Flush()
-
 }

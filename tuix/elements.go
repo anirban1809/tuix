@@ -8,6 +8,7 @@ const (
 
 func Box(props Props, children ...Element) Element {
 	return Element{
+		Id:   createElementId(),
 		Type: ElementBox,
 		Layout: LayoutProps{
 			Direction:     props.Direction,
@@ -23,6 +24,7 @@ func Box(props Props, children ...Element) Element {
 
 func Text(text string, style Style) Element {
 	return Element{
+		Id:    createElementId(),
 		Type:  ElementText,
 		Text:  text,
 		Style: style,
@@ -31,10 +33,6 @@ func Text(text string, style Style) Element {
 
 // Component wraps a render function and its props into an Element.
 // The reconciler calls Render(props) to produce the concrete subtree.
-func Component(fn func(Props) []Element, props Props) Element {
-	children := fn(props)
-	return Element{
-		Type:     ElementComponent,
-		Children: children,
-	}
+func Component(fn func(Props) Element, props Props) Element {
+	return fn(props)
 }

@@ -2,37 +2,63 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"flowstacks.ai/tuix/tuix"
 )
 
-func update[T any](p *T, v T) {
-	*p = v
+// Counter renders a labeled count with independent state per instance.
+func Counter(props tuix.Props) tuix.Element {
+	label := props.Get("label").(string)
+	step := props.Get("step").(int)
+
+	count, setCount := tuix.UseState(5)
+	setCount(count + step)
+
+	return tuix.Text(
+		fmt.Sprintf("%s: %d", label, count),
+		tuix.Style{}.Foreground(tuix.Cyan),
+	)
 }
 
-func Banner(props tuix.Props) []tuix.Element {
-	title := "Hello world"
-	var result []tuix.Element
-	result = append(result, tuix.Text(title, tuix.Style{}.Foreground(tuix.Blue)), Counter(props)[0])
-	return result
-}
+// Toggle tracks a boolean on/off state independently from the counters.
+func Toggle(props tuix.Props) tuix.Element {
+	on, setOn := tuix.UseState(false)
 
-func Counter(props tuix.Props) []tuix.Element {
-	count := 0
-	update(&count, 1)
+	setOn(!on)
 
-	return []tuix.Element{
-		tuix.Box(tuix.Props{Direction: tuix.Row, Padding: [4]int{1, 1, 1, 1}},
-			tuix.Text(fmt.Sprintf("Count: %d", count), tuix.Style{}),
-			tuix.Text("[+]", tuix.Style{}.Foreground(tuix.Blue).Bold(true)),
-		),
+	label := "OFF"
+	style := tuix.Style{}.Foreground(tuix.Red)
+	if on {
+		label = "ON"
+		style = tuix.Style{}.Foreground(tuix.Green)
 	}
+
+	return tuix.Text(fmt.Sprintf("Toggle: %s", label), style)
+}
+
+func App() tuix.Element {
+	return tuix.Box(
+		tuix.Props{Direction: tuix.Column, Gap: 1},
+		Counter(tuix.Props{Values: map[string]any{"label": "A", "step": 1}}),
+		Counter(tuix.Props{Values: map[string]any{"label": "B", "step": 3}}),
+		Toggle(tuix.Props{}),
+	)
 }
 
 func main() {
 	tuix.StdOutScreen.Start()
 	defer tuix.StdOutScreen.Stop()
 
-	app := tuix.NewApp(80, 24)
-	app.Run(Banner)
+	app := tuix.NewApp(60, 10)
+	app.Run(App)
+
+	buf := make([]byte, 32)
+	for {
+		n, err := os.Stdin.Read(buf)
+		if err != nil || (n == 1 && buf[0] == 'q') {
+			break
+		}
+		app.Run(App)
+	}
 }

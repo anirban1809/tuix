@@ -1,5 +1,10 @@
 package tuix
 
+import (
+	"crypto/rand"
+	"encoding/hex"
+)
+
 type ElementType int
 
 type Props struct {
@@ -14,6 +19,7 @@ func (p Props) Get(key string) any {
 }
 
 type Element struct {
+	Id       string
 	Type     ElementType
 	Key      string
 	Text     string
@@ -37,28 +43,15 @@ type LayoutProps struct {
 	Justify       Justify
 }
 
-type Node struct {
-	Element   Element
-	Rect      Rect
-	Children  []*Node
-	Parent    *Node
-	HookState HookState
+func createElementId() string {
+	bytes := make([]byte, 3)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
 }
 
-func createNode(element Element) *Node {
-	var children []*Node
-	node := &Node{
-		HookState: HookState{},
+func CreateElement(children ...Element) Element {
+	return Element{
+		Id:       createElementId(),
+		Children: children,
 	}
-
-	for _, child := range element.Children {
-		childNode := createNode(child)
-		childNode.Parent = node
-		children = append(children, childNode)
-	}
-
-	node.Element = element
-	node.Children = children
-
-	return node
 }

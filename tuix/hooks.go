@@ -1,15 +1,5 @@
 package tuix
 
-// package level variable, represents the current node being rendered
-var currentNode *Node
-
-type HookState struct {
-	slots          []any
-	cursor         int
-	effects        []Effect
-	scheduleUpdate func()
-}
-
 type Effect struct {
 	fn      func() func()
 	deps    []any
@@ -17,17 +7,23 @@ type Effect struct {
 }
 
 var State []any
-var StateCursor int = 0
+var StateCursor int = -1
 
 func UseState[T any](initial T) (T, func(T)) {
-	State = append(State, initial)
+	idx := StateCursor
+	StateCursor++
 
-	setter := func(newVal T) {
-		State[StateCursor] = newVal
+	if idx >= len(State) {
+		State = append(State, initial)
 	}
 
-	value := initial
-	return value, setter
+	current := State[idx].(T)
+
+	setter := func(next T) {
+		State[idx] = next
+	}
+
+	return current, setter
 }
 
 func UseEffect(fn func() func(), deps []any) {
