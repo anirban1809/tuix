@@ -1,4 +1,4 @@
-module flowstacks.ai/tuix
+module github.com/anirban1809/tuix
 
 go 1.26.1
 

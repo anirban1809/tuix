@@ -13,6 +13,8 @@ var StateCursor int = 0
 var Effects []Effect
 var EffectCursor int = 0
 
+var pendingRender bool
+
 func UseState[T any](initial T) (T, func(T)) {
 	idx := StateCursor
 	StateCursor++
@@ -25,6 +27,7 @@ func UseState[T any](initial T) (T, func(T)) {
 
 	setter := func(next T) {
 		State[idx] = next
+		pendingRender = true
 	}
 
 	return current, setter
@@ -44,8 +47,10 @@ func UseEffect(fn func() func(), deps []any) {
 		if Effects[idx].deps[i] != dep {
 			Effects[idx].fn = newEffect.fn
 			Effects[idx].dirty = true
+			break
 		}
 	}
+	Effects[idx].deps = newEffect.deps
 }
 
 // RunEffects runs all effects marked dirty since the last render.

@@ -1,7 +1,7 @@
 package components
 
 import (
-	"flowstacks.ai/tuix/tuix"
+	"github.com/anirban1809/tuix/tuix"
 )
 
 // Button renders a pressable label. Highlighted when focused.

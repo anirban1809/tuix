@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	tuix "flowstacks.ai/tuix/tuix"
+	tuix "github.com/anirban1809/tuix/tuix"
 )
 
 func newTestScreen(w, h int) (*tuix.Screen, *bytes.Buffer) {

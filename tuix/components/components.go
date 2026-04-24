@@ -3,7 +3,7 @@ package components
 import (
 	"strings"
 
-	"flowstacks.ai/tuix/tuix"
+	"github.com/anirban1809/tuix/tuix"
 )
 
 // Panel renders a bordered container with a title in the top edge.

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tuix "flowstacks.ai/tuix/tuix"
+	tuix "github.com/anirban1809/tuix/tuix"
 )
 
 func TestStyleZeroValueIsValid(t *testing.T) {

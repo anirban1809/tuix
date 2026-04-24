@@ -88,5 +88,17 @@ func (a *App) Render(fn func() Element) {
 
 	a.renderer.Render(next)
 	a.screen.Flush()
+
+	pendingRender = false
 	RunEffects()
+
+	if pendingRender {
+		CurrentKey = Key{}
+		StateCursor = 0
+		EffectCursor = 0
+		next := fn()
+
+		a.renderer.Render(next)
+		a.screen.Flush()
+	}
 }
