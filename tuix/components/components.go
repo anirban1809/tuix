@@ -20,13 +20,14 @@ func Panel(title string, width int, children ...tuix.Element) tuix.Element {
 	for _, child := range children {
 		rows = append(rows, tuix.Box(
 			tuix.Props{Direction: tuix.Row},
+			tuix.NewStyle(),
 			tuix.Text("│ ", tuix.Style{}),
 			child,
 		))
 	}
 	rows = append(rows, tuix.Text(bottom, tuix.Style{}))
 
-	return tuix.Box(tuix.Props{Direction: tuix.Column}, rows...)
+	return tuix.Box(tuix.Props{Direction: tuix.Column}, tuix.NewStyle(), rows...)
 }
 
 // Badge renders a short colored label with padding.

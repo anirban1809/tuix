@@ -1,10 +1,5 @@
 package tuix
 
-import (
-	"crypto/rand"
-	"encoding/hex"
-)
-
 type ElementType int
 
 type Props struct {
@@ -41,17 +36,4 @@ type LayoutProps struct {
 	Gap           int
 	Align         Alignment
 	Justify       Justify
-}
-
-func createElementId() string {
-	bytes := make([]byte, 3)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
-}
-
-func CreateElement(children ...Element) Element {
-	return Element{
-		Id:       createElementId(),
-		Children: children,
-	}
 }

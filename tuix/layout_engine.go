@@ -1,5 +1,10 @@
 package tuix
 
+// IntrinsicSize returns the natural (unconstrained) dimensions of a layout tree.
+func IntrinsicSize(root *LayoutNode) (width, height int) {
+	return measure(root)
+}
+
 // ComputeLayout runs the two-pass layout algorithm on the given tree and
 // returns a flat slice of Rects in depth-first, pre-order (parent before
 // children). The root is given the provided available Rect as its bounds.

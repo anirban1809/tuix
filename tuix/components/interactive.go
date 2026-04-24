@@ -16,7 +16,7 @@ func Button(label string, focused bool) tuix.Element {
 }
 
 // Input renders a labeled text field. Shows a block cursor when focused.
-func Input(label string, focused bool) tuix.Element {
+func Input(label string, focused bool, onChange func(value string)) tuix.Element {
 	value, setValue := tuix.UseState("")
 
 	const fieldWidth = 22
@@ -31,6 +31,11 @@ func Input(label string, focused bool) tuix.Element {
 		} else if tuix.CurrentKey.Rune != 0 {
 			setValue(value + string(tuix.CurrentKey.Rune))
 		}
+
+		if onChange != nil {
+			onChange(value)
+		}
+
 	}
 
 	var fieldStyle tuix.Style
@@ -42,19 +47,24 @@ func Input(label string, focused bool) tuix.Element {
 
 	return tuix.Box(
 		tuix.Props{Direction: tuix.Row},
+		tuix.NewStyle(),
 		tuix.Text(label+": ", tuix.NewStyle().Foreground(tuix.White)),
 		tuix.Text(value, fieldStyle),
 	)
 }
 
 // Checkbox renders a boolean toggle. Space or Enter toggles when focused.
-func Checkbox(label string, focused bool) tuix.Element {
+func Checkbox(label string, focused bool, onChange func(bool)) tuix.Element {
 	checked, setChecked := tuix.UseState(false)
 
 	if focused {
 		if tuix.CurrentKey.Code == tuix.KeySpace || tuix.CurrentKey.Code == tuix.KeyEnter {
 			setChecked(!checked)
 		}
+	}
+
+	if onChange != nil {
+		onChange(checked)
 	}
 
 	box := "[ ]"
@@ -100,7 +110,7 @@ func List(items []string, focused bool) tuix.Element {
 		}
 		children[i] = tuix.Text(prefix+item, style)
 	}
-	return tuix.Box(tuix.Props{Direction: tuix.Column}, children...)
+	return tuix.Box(tuix.Props{Direction: tuix.Column}, tuix.NewStyle(), children...)
 }
 
 // SelectPicker renders a single-line option cycler with < > arrows.

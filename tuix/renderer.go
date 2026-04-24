@@ -10,8 +10,15 @@ func NewRenderer(screen *Screen) *ComponentRenderer {
 }
 
 func (r *ComponentRenderer) Render(next Element) {
-	available := Rect{X: 0, Y: 0, Width: r.screen.Width(), Height: r.screen.Height()}
 	layoutRoot := buildLayoutTree(next)
+
+	_, contentH := IntrinsicSize(layoutRoot)
+	screenH := r.screen.Height()
+	if contentH > screenH {
+		r.screen.Resize(r.screen.Width(), contentH)
+	}
+
+	available := Rect{X: 0, Y: 0, Width: r.screen.Width(), Height: r.screen.Height()}
 	rects := ComputeLayout(layoutRoot, available)
 
 	r.screen.Clear()

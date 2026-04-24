@@ -6,27 +6,26 @@ const (
 	ElementComponent
 )
 
-func Box(props Props, children ...Element) Element {
+func Box(props Props, style Style, children ...Element) Element {
 	return Element{
-		Id:   createElementId(),
 		Type: ElementBox,
 		Layout: LayoutProps{
-			Direction:    props.Direction,
-			WidthSizing:  Fit(),
-			HeightSizing: Fit(),
-			Gap:          props.Gap,
-			PaddingTop:   props.Padding[0],
-			PaddingRight: props.Padding[1],
+			Direction:     props.Direction,
+			WidthSizing:   Fit(),
+			HeightSizing:  Fit(),
+			Gap:           props.Gap,
+			PaddingTop:    props.Padding[0],
+			PaddingRight:  props.Padding[1],
 			PaddingBottom: props.Padding[2],
-			PaddingLeft:  props.Padding[3],
+			PaddingLeft:   props.Padding[3],
 		},
+		Style:    style,
 		Children: children,
 	}
 }
 
 func Text(text string, style Style) Element {
 	return Element{
-		Id:    createElementId(),
 		Type:  ElementText,
 		Text:  text,
 		Style: style,
