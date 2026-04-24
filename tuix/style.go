@@ -14,6 +14,10 @@ type Style struct {
 	foreground Color
 }
 
+func NewStyle() Style {
+	return Style{}
+}
+
 func (s Style) Bold(bold bool) Style {
 	s.bold = bold
 	return s

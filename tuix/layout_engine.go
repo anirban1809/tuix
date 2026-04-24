@@ -22,6 +22,11 @@ func measure(n *LayoutNode) (int, int) {
 
 	width, height := 0, 0
 
+	gaps := 0
+	if len(n.Children) > 1 {
+		gaps = n.gap * (len(n.Children) - 1)
+	}
+
 	switch n.WidthSizing.Mode {
 	case SizingFixed:
 		width = n.WidthSizing.Value
@@ -31,6 +36,7 @@ func measure(n *LayoutNode) (int, int) {
 			for _, child := range n.Children {
 				width += child.intrinsicWidth
 			}
+			width += gaps
 		} else {
 			for _, child := range n.Children {
 				if child.intrinsicWidth > width {
@@ -52,6 +58,7 @@ func measure(n *LayoutNode) (int, int) {
 			for _, child := range n.Children {
 				height += child.intrinsicHeight
 			}
+			height += gaps
 		} else {
 			for _, child := range n.Children {
 				if child.intrinsicHeight > height {

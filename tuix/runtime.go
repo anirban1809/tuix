@@ -13,9 +13,13 @@ func NewApp(width, height int) *App {
 	}
 }
 
-var ElementsTable map[string]bool
-
 func (a *App) Run(fn func() Element) {
+	// Pass 1: process key events and mutate state
+	StateCursor = 0
+	fn()
+
+	// Pass 2: render with updated state; key is now consumed
+	CurrentKey = Key{}
 	StateCursor = 0
 	next := fn()
 

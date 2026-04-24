@@ -1,48 +1,79 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"flowstacks.ai/tuix/tuix"
+	"flowstacks.ai/tuix/tuix/components"
 )
 
-// Counter renders a labeled count with independent state per instance.
-func Counter(props tuix.Props) tuix.Element {
-	label := props.Get("label").(string)
-	step := props.Get("step").(int)
+// --- global state managed by the event loop ---
+var (
+	focusIdx = 0
+	saved    = false
+)
 
-	count, setCount := tuix.UseState(5)
-	setCount(count + step)
+const numFocusable = 5
 
-	return tuix.Text(
-		fmt.Sprintf("%s: %d", label, count),
-		tuix.Style{}.Foreground(tuix.Cyan),
-	)
-}
+var (
+	listItems     = []string{"Dashboard", "Settings", "Users", "Reports", "Logout"}
+	selectOptions = []string{"Light", "Dark", "System", "High Contrast"}
+)
 
-// Toggle tracks a boolean on/off state independently from the counters.
-func Toggle(props tuix.Props) tuix.Element {
-	on, setOn := tuix.UseState(false)
-
-	setOn(!on)
-
-	label := "OFF"
-	style := tuix.Style{}.Foreground(tuix.Red)
-	if on {
-		label = "ON"
-		style = tuix.Style{}.Foreground(tuix.Green)
+func handleKey(key tuix.Key) {
+	if key.Code == tuix.KeyTab {
+		focusIdx = (focusIdx + 1) % numFocusable
+		return
+	}
+	if key.Code == tuix.KeyShiftTab {
+		focusIdx = (focusIdx - 1 + numFocusable) % numFocusable
+		return
 	}
 
-	return tuix.Text(fmt.Sprintf("Toggle: %s", label), style)
+	switch focusIdx {
+	case 0: // Button — Enter toggles saved state
+		if key.Code == tuix.KeyEnter {
+			saved = !saved
+		}
+
+	case 1: // Input — TODO(human): handle text editing
+
+	}
 }
 
 func App() tuix.Element {
+	btnLabel := "Save Changes"
+	if saved {
+		btnLabel = "Saved ✓      "
+	}
+
+	dimStyle := tuix.Style{}.Foreground(tuix.BrightBlack)
+
 	return tuix.Box(
 		tuix.Props{Direction: tuix.Column, Gap: 1},
-		Counter(tuix.Props{Values: map[string]any{"label": "A", "step": 1}}),
-		Counter(tuix.Props{Values: map[string]any{"label": "B", "step": 3}}),
-		Toggle(tuix.Props{}),
+
+		components.Panel("tuix — Interactive Demo", 52,
+			components.Button(btnLabel, focusIdx == 0),
+			tuix.Text(" ", tuix.Style{}),
+			components.Input("Username: ", focusIdx == 1),
+			components.Checkbox("Enable notifications", focusIdx == 2),
+		),
+
+		tuix.Box(
+			tuix.Props{Direction: tuix.Row, Gap: 6},
+			tuix.Box(
+				tuix.Props{Direction: tuix.Column, Gap: 1},
+				tuix.Text("Navigate", dimStyle),
+				components.List(listItems, focusIdx == 3),
+			),
+			tuix.Box(
+				tuix.Props{Direction: tuix.Column, Gap: 1},
+				tuix.Text("Theme", dimStyle),
+				components.SelectPicker(selectOptions, focusIdx == 4),
+			),
+		),
+
+		tuix.Text("Tab · cycle focus    Shift+Tab · reverse    Esc · quit", dimStyle),
 	)
 }
 
@@ -50,15 +81,36 @@ func main() {
 	tuix.StdOutScreen.Start()
 	defer tuix.StdOutScreen.Stop()
 
-	app := tuix.NewApp(60, 10)
+	app := tuix.NewApp(100, 50)
 	app.Run(App)
 
-	buf := make([]byte, 32)
-	for {
-		n, err := os.Stdin.Read(buf)
-		if err != nil || (n == 1 && buf[0] == 'q') {
-			break
+	quit := make(chan struct{})
+
+	go func() {
+		buf := make([]byte, 32)
+		for {
+			n, err := os.Stdin.Read(buf)
+			if err != nil {
+				close(quit)
+				return
+			}
+			key := tuix.ParseKey(buf[:n])
+			if key.Code == tuix.KeyEscape || key.Code == tuix.KeyCtrlC {
+				close(quit)
+				return
+			}
+			tuix.Keys <- key
 		}
-		app.Run(App)
+	}()
+
+	for {
+		select {
+		case <-quit:
+			return
+		case key := <-tuix.Keys:
+			tuix.CurrentKey = key
+			handleKey(key)
+			app.Run(App)
+		}
 	}
 }
