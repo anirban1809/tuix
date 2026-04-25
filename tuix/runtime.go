@@ -27,8 +27,8 @@ func NewApp(width, height int) *App {
 var ticker = make(chan bool, 1)
 var CurrentTick bool = false
 
-func (a *App) Run(fn func() Element) {
-	a.Render(fn)
+func (a *App) Run(fn func(props Props) Element, props Props) {
+	a.Render(fn, props)
 
 	quit := make(chan struct{})
 
@@ -66,25 +66,25 @@ func (a *App) Run(fn func() Element) {
 			return
 		case key := <-Keys:
 			CurrentKey = key
-			a.Render(fn)
+			a.Render(fn, props)
 		case tick := <-ticker:
 			CurrentTick = tick
-			a.Render(fn)
+			a.Render(fn, props)
 		}
 	}
 }
 
-func (a *App) Render(fn func() Element) {
+func (a *App) Render(fn func(props Props) Element, props Props) {
 	// Pass 1: process key events and mutate state
 	StateCursor = 0
 	EffectCursor = 0
-	fn()
+	fn(props)
 
 	// Pass 2: render with updated state; key is now consumed
 	CurrentKey = Key{}
 	StateCursor = 0
 	EffectCursor = 0
-	next := fn()
+	next := fn(props)
 
 	a.renderer.Render(next)
 	a.screen.Flush()
@@ -96,7 +96,7 @@ func (a *App) Render(fn func() Element) {
 		CurrentKey = Key{}
 		StateCursor = 0
 		EffectCursor = 0
-		next := fn()
+		next := fn(props)
 
 		a.renderer.Render(next)
 		a.screen.Flush()

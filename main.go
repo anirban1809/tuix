@@ -18,7 +18,7 @@ var contacts = [][]string{
 	{"Eva Park", "Designer", "● Active"},
 }
 
-func App() tuix.Element {
+func App(props tuix.Props) tuix.Element {
 	focus, setFocus := tuix.UseState(0) // 0=search, 1=tabs, 2=table
 	search, setSearch := tuix.UseState("")
 	modalOpen, setModalOpen := tuix.UseState(false)
@@ -152,5 +152,5 @@ func App() tuix.Element {
 
 func main() {
 	app := tuix.NewApp(200, 25)
-	app.Run(App)
+	app.Run(App, tuix.Props{})
 }
