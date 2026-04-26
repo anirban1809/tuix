@@ -6,9 +6,6 @@ import (
 	"github.com/anirban1809/tuix/tuix"
 )
 
-// nextLine returns the content of the line that should be appended when
-// the user presses spacebar. `count` is the number of lines already in
-// the block (so the first call receives 0).
 func nextLine() string {
 	return "This is a line"
 }
@@ -40,10 +37,6 @@ func App(props tuix.Props) tuix.Element {
 }
 
 func main() {
-	// Width 60 keeps every painted row under the typical 80-col terminal
-	// so EnsureRoom's inline writes don't wrap. Initial height 10 is
-	// deliberately smaller than contentH so the scroll path runs on
-	// frame 1.
 	app := tuix.NewApp(60, 10)
 	app.Run(App, tuix.Props{})
 }
