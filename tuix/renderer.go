@@ -23,6 +23,11 @@ func (r *ComponentRenderer) Render(next Element) {
 
 	r.screen.Clear()
 	paint(next, rects, 0, r.screen)
+
+	// After paint: if contentH overflows the terminal viewport, write the
+	// rows inline so the terminal scrolls older content into scrollback.
+	// Must run after paint because it reads from the cell grid.
+	r.screen.EnsureRoom(contentH)
 }
 
 func buildLayoutTree(element Element) *LayoutNode {

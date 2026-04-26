@@ -5,163 +5,60 @@ import (
 	"strings"
 
 	"github.com/anirban1809/tuix/tuix"
-	"github.com/anirban1809/tuix/tuix/components"
 )
 
-var tableHeaders = []string{"Name", "Role", "Status"}
-
-var contacts = [][]string{
-	{"Alice Chen", "Engineer", "● Active"},
-	{"Bob Smith", "Designer", "○ Away"},
-	{"Carol Wu", "Manager", "● Active"},
-	{"Dave Kim", "Engineer", "○ Inactive"},
-	{"Eva Park", "Designer", "● Active"},
+// buildLongText returns 60 numbered lines so the block is taller than any
+// reasonable terminal viewport, ensuring the scroll-into-scrollback path
+// in EnsureRoom is exercised.
+func buildLongText() string {
+	var b strings.Builder
+	for i := 1; i <= 60; i++ {
+		fmt.Fprintf(&b, "Line %02d ── scrollback verification line\n", i)
+	}
+	return b.String()
 }
 
 func App(props tuix.Props) tuix.Element {
-	focus, setFocus := tuix.UseState(0) // 0=search, 1=tabs, 2=table
-	search, setSearch := tuix.UseState("")
-	modalOpen, setModalOpen := tuix.UseState(false)
+	ticks, setTicks := tuix.UseState(0)
 
-	// Tabs must render before filtering: Pass 2 calls onChange synchronously,
-	// setting activeTab from Tabs' already-updated internal state.
-	activeTab := 0
-	tabs := components.Tabs(
-		[]string{"All", "Active", "Away / Inactive"},
-		focus == 1,
-		func(i int) { activeTab = i },
+	// CurrentTick toggles every 500ms; count edges so we have a visibly
+	// changing value at the bottom of the program.
+	if tuix.CurrentTick {
+		setTicks(ticks + 1)
+	}
+
+	bodyStyle := tuix.NewStyle().Foreground(tuix.White)
+	accent := tuix.NewStyle().Foreground(tuix.Cyan).Bold(true)
+	dim := tuix.NewStyle().Foreground(tuix.BrightBlack)
+
+	header := tuix.Text("── multiline overflow demo ──", accent)
+
+	longBlock := tuix.MultilineText(buildLongText(), bodyStyle)
+
+	// Live counter — proves the visible portion of the program still
+	// refreshes after older rows have scrolled into scrollback.
+	live := tuix.Text(
+		fmt.Sprintf("ticks: %d  (scroll up to see earlier lines)", ticks),
+		accent,
 	)
 
-	// Filter: tab category first, then search string.
-	q := strings.ToLower(search)
-	filtered := make([][]string, 0, len(contacts))
-	for _, row := range contacts {
-		switch activeTab {
-		case 1:
-			if !strings.Contains(row[2], "Active") {
-				continue
-			}
-		case 2:
-			if strings.Contains(row[2], "Active") {
-				continue
-			}
-		}
-		for _, cell := range row {
-			if q == "" || strings.Contains(strings.ToLower(cell), q) {
-				filtered = append(filtered, row)
-				break
-			}
-		}
-	}
-
-	// Tab cycles focus forward; ShiftTab cycles backward.
-	if !modalOpen {
-		if tuix.CurrentKey.Code == tuix.KeyTab {
-			setFocus((focus + 1) % 3)
-		}
-		if tuix.CurrentKey.Code == tuix.KeyShiftTab {
-			setFocus((focus + 2) % 3)
-		}
-	}
-
-	// Search input keys (handled in App so we own the state for filtering).
-	if focus == 0 && !modalOpen {
-		switch tuix.CurrentKey.Code {
-		case tuix.KeyBackspace:
-			if r := []rune(search); len(r) > 0 {
-				setSearch(string(r[:len(r)-1]))
-			}
-		case tuix.KeySpace:
-			setSearch(search + " ")
-		default:
-			if tuix.CurrentKey.Rune != 0 {
-				setSearch(search + string(tuix.CurrentKey.Rune))
-			}
-		}
-	}
-
-	// Enter on the table opens the modal.
-	if focus == 2 && !modalOpen && tuix.CurrentKey.Code == tuix.KeyEnter && len(filtered) > 0 {
-		setModalOpen(true)
-	}
-
-	// ── Search bar ─────────────────────────────────────────────────────────────
-	cursor := ""
-	if focus == 0 {
-		cursor = "█"
-	}
-	labelStyle := tuix.NewStyle().Foreground(tuix.BrightBlack)
-	inputStyle := tuix.NewStyle().Foreground(tuix.White)
-	if focus == 0 {
-		inputStyle = tuix.NewStyle().Foreground(tuix.Cyan).Bold(true)
-	}
-	searchBar := tuix.Box(
-		tuix.Props{Direction: tuix.Row},
-		tuix.NewStyle(),
-		tuix.Text("Search: ", labelStyle),
-		tuix.Text(search+cursor, inputStyle),
-	)
-
-	countLine := tuix.Text(
-		fmt.Sprintf("%d of %d contacts", len(filtered), len(contacts)),
-		labelStyle,
-	)
-
-	// ── Table ──────────────────────────────────────────────────────────────────
-	selectedIdx := 0
-	table := components.Table(tableHeaders, filtered, focus == 2, func(i int) {
-		selectedIdx = i
-	})
-
-	// ── Modal ──────────────────────────────────────────────────────────────────
-	var modalBody tuix.Element
-	if len(filtered) > 0 && selectedIdx < len(filtered) {
-		row := filtered[selectedIdx]
-		modalBody = tuix.Box(
-			tuix.Props{Direction: tuix.Column, Gap: 1},
-			tuix.NewStyle(),
-			tuix.Text("Name:   "+row[0], tuix.NewStyle().Foreground(tuix.White).Bold(true)),
-			tuix.Text("Role:   "+row[1], tuix.NewStyle().Foreground(tuix.White)),
-			tuix.Text("Status: "+row[2], tuix.NewStyle().Foreground(tuix.White)),
-		)
-	} else {
-		modalBody = tuix.Text("No contact selected.", labelStyle)
-	}
-
-	modal := components.Modal("Contact Details", modalOpen, 36, func() {
-		setModalOpen(false)
-	}, modalBody)
-
-	// ── Banner (MultilineText demo) ────────────────────────────────────────────
-	// Each line MUST end with '\n' so the sizing loop flushes its width.
-	banner := tuix.MultilineText(
-		"╔═══════════════════════════════╗\n"+
-			"║  TUIX Contacts Directory      ║\n"+
-			"║  Multiline Text Demo          ║\n"+
-			"╚═══════════════════════════════╝\n",
-		tuix.NewStyle().Foreground(tuix.Cyan).Bold(true),
-	)
-
-	// ── Hint bar ───────────────────────────────────────────────────────────────
-	hint := tuix.Text(
-		"Tab/ShiftTab: switch focus   ←/→: change tab   Enter: view details   Esc: quit",
-		labelStyle,
-	)
+	hint := tuix.Text("Esc to quit", dim)
 
 	return tuix.Box(
 		tuix.Props{Direction: tuix.Column, Gap: 1},
 		tuix.NewStyle(),
-		banner,
-		searchBar,
-		tabs,
-		countLine,
-		table,
+		header,
+		longBlock,
+		live,
 		hint,
-		modal,
 	)
 }
 
 func main() {
-	app := tuix.NewApp(200, 25)
+	// Width 60 keeps every painted row under the typical 80-col terminal
+	// so EnsureRoom's inline writes don't wrap. Initial height 10 is
+	// deliberately smaller than contentH so the scroll path runs on
+	// frame 1.
+	app := tuix.NewApp(60, 10)
 	app.Run(App, tuix.Props{})
 }
