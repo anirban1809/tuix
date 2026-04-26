@@ -132,6 +132,16 @@ func App(props tuix.Props) tuix.Element {
 		setModalOpen(false)
 	}, modalBody)
 
+	// ── Banner (MultilineText demo) ────────────────────────────────────────────
+	// Each line MUST end with '\n' so the sizing loop flushes its width.
+	banner := tuix.MultilineText(
+		"╔═══════════════════════════════╗\n"+
+			"║  TUIX Contacts Directory      ║\n"+
+			"║  Multiline Text Demo          ║\n"+
+			"╚═══════════════════════════════╝\n",
+		tuix.NewStyle().Foreground(tuix.Cyan).Bold(true),
+	)
+
 	// ── Hint bar ───────────────────────────────────────────────────────────────
 	hint := tuix.Text(
 		"Tab/ShiftTab: switch focus   ←/→: change tab   Enter: view details   Esc: quit",
@@ -141,6 +151,7 @@ func App(props tuix.Props) tuix.Element {
 	return tuix.Box(
 		tuix.Props{Direction: tuix.Column, Gap: 1},
 		tuix.NewStyle(),
+		banner,
 		searchBar,
 		tabs,
 		countLine,

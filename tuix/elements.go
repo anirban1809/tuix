@@ -3,6 +3,7 @@ package tuix
 const (
 	ElementBox ElementType = iota
 	ElementText
+	ElementMultilineText
 	ElementComponent
 )
 
@@ -32,8 +33,13 @@ func Text(text string, style Style) Element {
 	}
 }
 
-// Component wraps a render function and its props into an Element.
-// The reconciler calls Render(props) to produce the concrete subtree.
-func Component(fn func(Props) Element, props Props) Element {
-	return fn(props)
+// MultilineText renders text that may contain '\n' line breaks. Each '\n'
+// starts a new row at the element's left edge; the intrinsic width is the
+// longest line and the intrinsic height is the line count.
+func MultilineText(text string, style Style) Element {
+	return Element{
+		Type:  ElementMultilineText,
+		Text:  text,
+		Style: style,
+	}
 }

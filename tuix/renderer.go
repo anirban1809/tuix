@@ -40,13 +40,33 @@ func buildLayoutTree(element Element) *LayoutNode {
 		justify:       p.Justify,
 	}
 
-	if element.Text != "" {
+	switch element.Type {
+	case ElementText:
 		w := 0
 		for _, ch := range element.Text {
 			w += RuneWidth(ch)
 		}
 		l.WidthSizing = Fixed(w)
 		l.HeightSizing = Fixed(1)
+	case ElementMultilineText:
+		widestLineLength := 0
+		lineLength := 0
+		height := 0
+
+		for _, ch := range element.Text {
+			if ch == '\n' {
+				if lineLength > widestLineLength {
+					widestLineLength = lineLength
+				}
+				lineLength = 0
+				height++
+			} else {
+				lineLength += RuneWidth(ch)
+			}
+		}
+
+		l.WidthSizing = Fixed(widestLineLength)
+		l.HeightSizing = Fixed(height)
 	}
 
 	for _, child := range element.Children {
@@ -61,13 +81,31 @@ func paint(element Element, rects []Rect, idx int, screen *Screen) int {
 	rect := rects[idx]
 	idx++
 
-	if element.Text != "" {
+	switch element.Type {
+	case ElementText:
 		x := rect.X
 		for _, ch := range element.Text {
 			if x >= rect.X+rect.Width {
 				break
 			}
 			screen.SetCell(x, rect.Y, ch, element.Style)
+			x += RuneWidth(ch)
+		}
+	case ElementMultilineText:
+		x := rect.X
+		y := rect.Y
+		for _, ch := range element.Text {
+			if ch == '\n' {
+				y++
+				x = rect.X
+				continue
+			}
+			if y >= rect.Y+rect.Height {
+				break
+			}
+			if x < rect.X+rect.Width {
+				screen.SetCell(x, y, ch, element.Style)
+			}
 			x += RuneWidth(ch)
 		}
 	}
