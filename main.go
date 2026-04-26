@@ -1,55 +1,40 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/anirban1809/tuix/tuix"
 )
 
-// buildLongText returns 60 numbered lines so the block is taller than any
-// reasonable terminal viewport, ensuring the scroll-into-scrollback path
-// in EnsureRoom is exercised.
-func buildLongText() string {
-	var b strings.Builder
-	for i := 1; i <= 60; i++ {
-		fmt.Fprintf(&b, "Line %02d ── scrollback verification line\n", i)
-	}
-	return b.String()
+// nextLine returns the content of the line that should be appended when
+// the user presses spacebar. `count` is the number of lines already in
+// the block (so the first call receives 0).
+func nextLine() string {
+	return "This is a line"
 }
 
 func App(props tuix.Props) tuix.Element {
-	ticks, setTicks := tuix.UseState(0)
+	lines, setLines := tuix.UseState([]string{})
 
-	// CurrentTick toggles every 500ms; count edges so we have a visibly
-	// changing value at the bottom of the program.
-	if tuix.CurrentTick {
-		setTicks(ticks + 1)
+	if tuix.CurrentKey.Code == tuix.KeySpace {
+		setLines(append(lines, nextLine()))
 	}
 
 	bodyStyle := tuix.NewStyle().Foreground(tuix.White)
 	accent := tuix.NewStyle().Foreground(tuix.Cyan).Bold(true)
 	dim := tuix.NewStyle().Foreground(tuix.BrightBlack)
 
-	header := tuix.Text("── multiline overflow demo ──", accent)
+	header := tuix.Text("── spacebar appends a new line ──", accent)
 
-	longBlock := tuix.MultilineText(buildLongText(), bodyStyle)
+	longBlock := tuix.MultilineText(strings.Join(lines, "\n"), bodyStyle)
 
-	// Live counter — proves the visible portion of the program still
-	// refreshes after older rows have scrolled into scrollback.
-	live := tuix.Text(
-		fmt.Sprintf("ticks: %d  (scroll up to see earlier lines)", ticks),
-		accent,
-	)
-
-	hint := tuix.Text("Esc to quit", dim)
+	hint := tuix.Text("Space to append a line · Esc to quit", dim)
 
 	return tuix.Box(
 		tuix.Props{Direction: tuix.Column, Gap: 1},
 		tuix.NewStyle(),
 		header,
 		longBlock,
-		live,
 		hint,
 	)
 }
