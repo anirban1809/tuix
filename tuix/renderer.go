@@ -22,7 +22,7 @@ func (r *ComponentRenderer) Render(next Element) {
 	rects := ComputeLayout(layoutRoot, available)
 
 	r.screen.Clear()
-	paint(next, rects, 0, r.screen)
+	paint(next, rects, 0, r.screen, Style{})
 
 	// After paint: if contentH overflows the terminal viewport, write the
 	// rows inline so the terminal scrolls older content into scrollback.
@@ -70,6 +70,13 @@ func buildLayoutTree(element Element) *LayoutNode {
 			}
 		}
 
+		if lineLength > 0 {
+			if lineLength > widestLineLength {
+				widestLineLength = lineLength
+			}
+			height++
+		}
+
 		l.WidthSizing = Fixed(widestLineLength)
 		l.HeightSizing = Fixed(height)
 	}
@@ -81,19 +88,31 @@ func buildLayoutTree(element Element) *LayoutNode {
 }
 
 // paint walks the node tree in depth-first pre-order, matching the same
-// traversal order that ComputeLayout uses to produce rects.
-func paint(element Element, rects []Rect, idx int, screen *Screen) int {
+// traversal order that ComputeLayout uses to produce rects. parentStyle is
+// the inherited style from ancestors; each element merges its own Style
+// onto it and passes the result to children, so unspecified fields fall
+// through the tree.
+func paint(element Element, rects []Rect, idx int, screen *Screen, parentStyle Style) int {
 	rect := rects[idx]
 	idx++
 
+	effective := mergeStyles(parentStyle, element.Style)
+
 	switch element.Type {
+	case ElementBox:
+		for x := rect.X; x < rect.X+rect.Width; x++ {
+			for y := rect.Y; y < rect.Y+rect.Height; y++ {
+				screen.SetCell(x, y, ' ', effective)
+			}
+		}
+
 	case ElementText:
 		x := rect.X
 		for _, ch := range element.Text {
 			if x >= rect.X+rect.Width {
 				break
 			}
-			screen.SetCell(x, rect.Y, ch, element.Style)
+			screen.SetCell(x, rect.Y, ch, effective)
 			x += RuneWidth(ch)
 		}
 	case ElementMultilineText:
@@ -109,14 +128,14 @@ func paint(element Element, rects []Rect, idx int, screen *Screen) int {
 				break
 			}
 			if x < rect.X+rect.Width {
-				screen.SetCell(x, y, ch, element.Style)
+				screen.SetCell(x, y, ch, effective)
 			}
 			x += RuneWidth(ch)
 		}
 	}
 
 	for _, child := range element.Children {
-		idx = paint(child, rects, idx, screen)
+		idx = paint(child, rects, idx, screen, effective)
 	}
 	return idx
 }

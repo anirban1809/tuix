@@ -17,7 +17,7 @@ func App(props tuix.Props) tuix.Element {
 		setLines(append(lines, nextLine()))
 	}
 
-	bodyStyle := tuix.NewStyle().Foreground(tuix.White)
+	bodyStyle := tuix.NewStyle().Foreground(tuix.White).Bold(true).Background(tuix.Blue)
 	accent := tuix.NewStyle().Foreground(tuix.Cyan).Bold(true)
 	dim := tuix.NewStyle().Foreground(tuix.BrightBlack)
 
@@ -29,7 +29,7 @@ func App(props tuix.Props) tuix.Element {
 
 	return tuix.Box(
 		tuix.Props{Direction: tuix.Column, Gap: 1},
-		tuix.NewStyle(),
+		tuix.NewStyle().Background(tuix.Hex("#a1a1a1")),
 		header,
 		longBlock,
 		hint,
@@ -37,6 +37,6 @@ func App(props tuix.Props) tuix.Element {
 }
 
 func main() {
-	app := tuix.NewApp(60, 10)
+	app := tuix.NewApp(100, 10)
 	app.Run(App, tuix.Props{})
 }

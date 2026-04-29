@@ -145,3 +145,24 @@ func (s Style) ANSIPrefix() string {
 func (s Style) IsBold() bool {
 	return s.bold
 }
+
+// mergeStyles returns the effective style for a child whose own Style is
+// `child`, given an inherited `parent` style. A field is considered
+// "unspecified" on the child when its zero value indicates "not set":
+// foreground/background use ColorNone as the unset sentinel; bold/italic/
+// underline are bools with no distinct "unset" — pick a rule and stick to it.
+func mergeStyles(parent, child Style) Style {
+	if child.foreground.Type == ColorNone {
+		child.foreground = parent.foreground
+	}
+
+	if child.background.Type == ColorNone {
+		child.background = parent.background
+	}
+
+	if parent.bold && !child.bold {
+		child.bold = true
+	}
+
+	return child
+}
