@@ -2,6 +2,8 @@ package tuix
 
 import (
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -31,6 +33,9 @@ func (a *App) Run(fn func(props Props) Element, props Props) {
 	a.Render(fn, props)
 
 	quit := make(chan struct{})
+
+	resize := make(chan os.Signal, 1)
+	signal.Notify(resize, syscall.SIGWINCH)
 
 	go func() {
 		tick := false
@@ -69,6 +74,9 @@ func (a *App) Run(fn func(props Props) Element, props Props) {
 			a.Render(fn, props)
 		case tick := <-ticker:
 			CurrentTick = tick
+			a.Render(fn, props)
+		case <-resize:
+			a.screen.HandleResize()
 			a.Render(fn, props)
 		}
 	}

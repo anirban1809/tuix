@@ -218,6 +218,23 @@ func RuneWidth(value rune) int {
 	return runewidth.RuneWidth(value)
 }
 
+// HandleResize is called when the terminal viewport changes size (SIGWINCH).
+// It must update the Screen so the next paint targets the new dimensions
+// and so EnsureRoom's bounds reflect the new viewport.
+func (s *Screen) HandleResize() {
+	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
+
+	if err != nil {
+		return
+	}
+
+	s.termCols = cols
+	s.termRows = rows
+	s.dirty = true
+	s.anchorRow = 1
+	fmt.Fprint(s.out, "\033[H\033[2J")
+}
+
 func (s *Screen) SetDimensions(width, height int) {
 	s.width = width
 	s.height = height
