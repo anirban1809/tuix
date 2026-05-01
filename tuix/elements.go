@@ -43,3 +43,16 @@ func MultilineText(text string, style Style) Element {
 		Style: style,
 	}
 }
+
+// WrappedText renders text that breaks on word boundaries when a line would
+// exceed maxWidth columns. Existing '\n' characters still force a new row.
+// The intrinsic width is the widest wrapped line (capped at maxWidth) and the
+// intrinsic height is the wrapped line count.
+func WrappedText(text string, style Style, maxWidth int) Element {
+	return Element{
+		Type:      ElementMultilineText,
+		Text:      text,
+		WrapWidth: maxWidth,
+		Style:     style,
+	}
+}

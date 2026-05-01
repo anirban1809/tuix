@@ -14,15 +14,16 @@ func (p Props) Get(key string) any {
 }
 
 type Element struct {
-	Id       string
-	Type     ElementType
-	Key      string
-	Text     string
-	Style    Style
-	Layout   LayoutProps
-	Children []Element
-	Render   func(props Element) Element
-	Props    Props
+	Id        string
+	Type      ElementType
+	Key       string
+	Text      string
+	WrapWidth int
+	Style     Style
+	Layout    LayoutProps
+	Children  []Element
+	Render    func(props Element) Element
+	Props     Props
 }
 
 type LayoutProps struct {

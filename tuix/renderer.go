@@ -1,5 +1,44 @@
 package tuix
 
+import (
+	"strings"
+)
+
+// multilineLines returns the rendered lines for an ElementMultilineText. It
+// always splits on '\n' first; if WrapWidth > 0, each segment is further
+// broken at word boundaries by wrapText so it fits within WrapWidth columns.
+func multilineLines(element Element) []string {
+	segments := strings.Split(element.Text, "\n")
+	if element.WrapWidth <= 0 {
+		return segments
+	}
+	var out []string
+	for _, seg := range segments {
+		out = append(out, wrapText(seg, element.WrapWidth)...)
+	}
+	return out
+}
+
+// wrapText breaks a single line of text (no '\n') into one or more lines so
+// that each line's total cell width (per RuneWidth) is <= maxWidth. Breaks
+// should prefer whitespace boundaries.
+func wrapText(text string, maxWidth int) []string {
+	lines := []string{}
+
+	var line strings.Builder
+	for i := 0; i < len(text); i++ {
+		if i%maxWidth == 0 {
+			lines = append(lines, line.String())
+			line.Reset()
+			continue
+		}
+		line.WriteByte(text[i])
+	}
+
+	lines = append(lines, line.String())
+	return lines
+}
+
 type ComponentRenderer struct {
 	screen *Screen
 	dirty  chan struct{}
@@ -54,31 +93,19 @@ func buildLayoutTree(element Element) *LayoutNode {
 		l.WidthSizing = Fixed(w)
 		l.HeightSizing = Fixed(1)
 	case ElementMultilineText:
-		widestLineLength := 0
-		lineLength := 0
-		height := 0
-
-		for _, ch := range element.Text {
-			if ch == '\n' {
-				if lineLength > widestLineLength {
-					widestLineLength = lineLength
-				}
-				lineLength = 0
-				height++
-			} else {
-				lineLength += RuneWidth(ch)
+		lines := multilineLines(element)
+		widest := 0
+		for _, line := range lines {
+			w := 0
+			for _, ch := range line {
+				w += RuneWidth(ch)
+			}
+			if w > widest {
+				widest = w
 			}
 		}
-
-		if lineLength > 0 {
-			if lineLength > widestLineLength {
-				widestLineLength = lineLength
-			}
-			height++
-		}
-
-		l.WidthSizing = Fixed(widestLineLength)
-		l.HeightSizing = Fixed(height)
+		l.WidthSizing = Fixed(widest)
+		l.HeightSizing = Fixed(len(lines))
 	}
 
 	for _, child := range element.Children {
@@ -116,21 +143,20 @@ func paint(element Element, rects []Rect, idx int, screen *Screen, parentStyle S
 			x += RuneWidth(ch)
 		}
 	case ElementMultilineText:
-		x := rect.X
-		y := rect.Y
-		for _, ch := range element.Text {
-			if ch == '\n' {
-				y++
-				x = rect.X
-				continue
-			}
+		lines := multilineLines(element)
+		for i, line := range lines {
+			y := rect.Y + i
 			if y >= rect.Y+rect.Height {
 				break
 			}
-			if x < rect.X+rect.Width {
+			x := rect.X
+			for _, ch := range line {
+				if x >= rect.X+rect.Width {
+					break
+				}
 				screen.SetCell(x, y, ch, effective)
+				x += RuneWidth(ch)
 			}
-			x += RuneWidth(ch)
 		}
 	}
 

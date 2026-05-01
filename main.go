@@ -32,6 +32,9 @@ func App(props tuix.Props) tuix.Element {
 
 	longBlock := tuix.MultilineText(strings.Join(lines, "\n"), bodyStyle)
 
+	paragraph := "The quick brown fox jumps over the lazy dog while a curious cat watches from the windowsill above."
+	wrapped := tuix.WrappedText(paragraph, bodyStyle, 30)
+
 	hint := tuix.Text("Space to append a line · Esc to quit", dim)
 
 	// Outer Box: 1 row top/bottom, 2 cols left/right of gray padding around
@@ -42,6 +45,7 @@ func App(props tuix.Props) tuix.Element {
 		tuix.NewStyle().Background(tuix.Hex("#a1a1a1")),
 		header,
 		longBlock,
+		wrapped,
 		hint,
 	)
 }

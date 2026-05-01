@@ -15,8 +15,8 @@ func Button(label string, focused bool) tuix.Element {
 	return tuix.Text("[ "+label+" ]", style)
 }
 
-// Input renders a labeled text field. Shows a block cursor when focused.
-func Input(label string, focused bool, onChange func(value string)) tuix.Element {
+// Input renders a labeled text field. Shows a custom cursor when focused.
+func Input(label string, cursor string, focused bool, onChange func(value string)) tuix.Element {
 	value, setValue := tuix.UseState("")
 
 	const fieldWidth = 22
@@ -48,8 +48,12 @@ func Input(label string, focused bool, onChange func(value string)) tuix.Element
 	return tuix.Box(
 		tuix.Props{Direction: tuix.Row},
 		tuix.NewStyle(),
-		tuix.Text(label+": ", tuix.NewStyle().Foreground(tuix.White)),
-		tuix.Text(value, fieldStyle),
+		tuix.Box(
+			tuix.Props{Direction: tuix.Row},
+			tuix.NewStyle(),
+			tuix.Text(label+" ", tuix.NewStyle().Foreground(tuix.White)),
+			tuix.MultilineText(value+cursor, fieldStyle),
+		),
 	)
 }
 

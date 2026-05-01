@@ -77,6 +77,13 @@ func measure(n *LayoutNode) (int, int) {
 
 	}
 
+	if n.WidthSizing.Mode == SizingFit {
+		width += n.paddingLeft + n.paddingRight
+	}
+	if n.HeightSizing.Mode == SizingFit {
+		height += n.paddingTop + n.paddingBottom
+	}
+
 	return width, height
 }
 
