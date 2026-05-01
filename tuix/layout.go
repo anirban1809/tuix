@@ -41,6 +41,11 @@ type LayoutNode struct {
 	gap             int
 	alignment       Alignment
 	justify         Justify
+	// reflow lets a node recompute its main-axis size once its cross-axis
+	// size is known during the layout pass. Used by content whose height
+	// depends on width (e.g. word-wrapped text). Currently invoked only when
+	// the parent's Direction is Column.
+	reflow func(crossSize int) int
 }
 
 func NewLayout() *LayoutNode {

@@ -33,7 +33,7 @@ func App(props tuix.Props) tuix.Element {
 	longBlock := tuix.MultilineText(strings.Join(lines, "\n"), bodyStyle)
 
 	paragraph := "The quick brown fox jumps over the lazy dog while a curious cat watches from the windowsill above."
-	wrapped := tuix.WrappedText(paragraph, bodyStyle, 30)
+	wrapped := tuix.WrappedText(paragraph, bodyStyle)
 
 	hint := tuix.Text("Space to append a line · Esc to quit", dim)
 

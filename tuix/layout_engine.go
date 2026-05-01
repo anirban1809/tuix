@@ -240,6 +240,10 @@ func layout(n *LayoutNode, into Rect, out *[]Rect) {
 
 		setCrossSize(&childRect, n.Direction, resolveCrossSize(n, child, into))
 
+		if n.Direction == Column && child.reflow != nil {
+			child.intrinsicHeight = child.reflow(childRect.Width)
+		}
+
 		if n.Direction == Row {
 			switch child.WidthSizing.Mode {
 			case SizingFixed, SizingFit:

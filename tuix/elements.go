@@ -44,15 +44,15 @@ func MultilineText(text string, style Style) Element {
 	}
 }
 
-// WrappedText renders text that breaks on word boundaries when a line would
-// exceed maxWidth columns. Existing '\n' characters still force a new row.
-// The intrinsic width is the widest wrapped line (capped at maxWidth) and the
-// intrinsic height is the wrapped line count.
-func WrappedText(text string, style Style, maxWidth int) Element {
+// WrappedText renders text that fills its container's available width and
+// breaks on word boundaries to fit. Existing '\n' characters still force a
+// new row. Width grows to the parent's cross-axis size; height adapts to the
+// resulting wrapped line count.
+func WrappedText(text string, style Style) Element {
 	return Element{
-		Type:      ElementMultilineText,
-		Text:      text,
-		WrapWidth: maxWidth,
-		Style:     style,
+		Type:  ElementMultilineText,
+		Text:  text,
+		Wrap:  true,
+		Style: style,
 	}
 }

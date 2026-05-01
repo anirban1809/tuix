@@ -4,17 +4,17 @@ import (
 	"strings"
 )
 
-// multilineLines returns the rendered lines for an ElementMultilineText. It
-// always splits on '\n' first; if WrapWidth > 0, each segment is further
-// broken at word boundaries by wrapText so it fits within WrapWidth columns.
-func multilineLines(element Element) []string {
-	segments := strings.Split(element.Text, "\n")
-	if element.WrapWidth <= 0 {
-		return segments
-	}
+// rawLines returns the text split on '\n' only, with no word wrapping.
+func rawLines(text string) []string {
+	return strings.Split(text, "\n")
+}
+
+// wrappedLines splits the text on '\n' and then word-wraps each segment to
+// fit within maxWidth columns.
+func wrappedLines(text string, maxWidth int) []string {
 	var out []string
-	for _, seg := range segments {
-		out = append(out, wrapText(seg, element.WrapWidth)...)
+	for _, seg := range rawLines(text) {
+		out = append(out, wrapText(seg, maxWidth)...)
 	}
 	return out
 }
@@ -27,10 +27,9 @@ func wrapText(text string, maxWidth int) []string {
 
 	var line strings.Builder
 	for i := 0; i < len(text); i++ {
-		if i%maxWidth == 0 {
+		if i > 0 && i%maxWidth == 0 {
 			lines = append(lines, line.String())
 			line.Reset()
-			continue
 		}
 		line.WriteByte(text[i])
 	}
@@ -93,19 +92,31 @@ func buildLayoutTree(element Element) *LayoutNode {
 		l.WidthSizing = Fixed(w)
 		l.HeightSizing = Fixed(1)
 	case ElementMultilineText:
-		lines := multilineLines(element)
-		widest := 0
-		for _, line := range lines {
-			w := 0
-			for _, ch := range line {
-				w += RuneWidth(ch)
+		if element.Wrap {
+			l.WidthSizing = Grow(1)
+			l.HeightSizing = Fit()
+			text := element.Text
+			l.reflow = func(width int) int {
+				if width <= 0 {
+					return 1
+				}
+				return len(wrappedLines(text, width))
 			}
-			if w > widest {
-				widest = w
+		} else {
+			lines := rawLines(element.Text)
+			widest := 0
+			for _, line := range lines {
+				w := 0
+				for _, ch := range line {
+					w += RuneWidth(ch)
+				}
+				if w > widest {
+					widest = w
+				}
 			}
+			l.WidthSizing = Fixed(widest)
+			l.HeightSizing = Fixed(len(lines))
 		}
-		l.WidthSizing = Fixed(widest)
-		l.HeightSizing = Fixed(len(lines))
 	}
 
 	for _, child := range element.Children {
@@ -143,7 +154,12 @@ func paint(element Element, rects []Rect, idx int, screen *Screen, parentStyle S
 			x += RuneWidth(ch)
 		}
 	case ElementMultilineText:
-		lines := multilineLines(element)
+		var lines []string
+		if element.Wrap {
+			lines = wrappedLines(element.Text, rect.Width)
+		} else {
+			lines = rawLines(element.Text)
+		}
 		for i, line := range lines {
 			y := rect.Y + i
 			if y >= rect.Y+rect.Height {
