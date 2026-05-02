@@ -12,6 +12,7 @@ type Style struct {
 	underline  bool
 	background Color
 	foreground Color
+	border     Border
 }
 
 func NewStyle() Style {
@@ -41,6 +42,48 @@ func (s Style) Italic(italic bool) Style {
 func (s Style) Underline(underline bool) Style {
 	s.underline = underline
 	return s
+}
+
+func (s Style) Border(b Border) Style {
+	if b.Chars == (BorderChars{}) {
+		b.Chars = BorderSharp
+	}
+	s.border = b
+	return s
+}
+
+type BorderChars struct {
+	Top, Bottom, Left, Right                   rune
+	TopLeft, TopRight, BottomLeft, BottomRight rune
+}
+
+var (
+	BorderSharp = BorderChars{
+		Top: '─', Bottom: '─', Left: '│', Right: '│',
+		TopLeft: '┌', TopRight: '┐', BottomLeft: '└', BottomRight: '┘',
+	}
+	BorderRounded = BorderChars{
+		Top: '─', Bottom: '─', Left: '│', Right: '│',
+		TopLeft: '╭', TopRight: '╮', BottomLeft: '╰', BottomRight: '╯',
+	}
+	BorderDouble = BorderChars{
+		Top: '═', Bottom: '═', Left: '║', Right: '║',
+		TopLeft: '╔', TopRight: '╗', BottomLeft: '╚', BottomRight: '╝',
+	}
+	BorderThick = BorderChars{
+		Top: '━', Bottom: '━', Left: '┃', Right: '┃',
+		TopLeft: '┏', TopRight: '┓', BottomLeft: '┗', BottomRight: '┛',
+	}
+)
+
+type Border struct {
+	Top, Right, Bottom, Left bool
+	Chars                    BorderChars
+	Color                    Color
+}
+
+func (b Border) Any() bool {
+	return b.Top || b.Right || b.Bottom || b.Left
 }
 
 type ColorType int

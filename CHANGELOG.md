@@ -1,3 +1,17 @@
+# v0.0.10
+
+  1. tuix/style.go
+  Added border support on Style. New `Border` struct with per-side toggles (`Top`, `Right`, `Bottom`, `Left`), a `Chars BorderChars` glyph set, and a `Color`. New `BorderChars` struct holding the eight runes (four edges + four corners). Shipped four presets: `BorderSharp`, `BorderRounded`, `BorderDouble`, `BorderThick`. Added a `Border(b Border) Style` builder that defaults `Chars` to `BorderSharp` when unset, and a `Border.Any()` helper that reports whether any side is active. Borders are intentionally not propagated through `mergeStyles` — each element opts in explicitly.
+
+  2. tuix/renderer.go
+  - In `buildLayoutTree`, padding is now inflated by 1 cell on each side that has an active border before constructing the `LayoutNode`. This keeps `Box()` itself unaware of borders while ensuring child layout shrinks correctly to leave room for the frame.
+  - In `paint` for `ElementBox`, after the background fill the new `paintBorder(screen, rect, effective, element.Style.border)` call draws the frame. Border foreground overrides the inherited foreground only when `border.Color.Type != ColorNone`, so an unset color falls through to the box's own foreground.
+  - Added `paintBorder` which walks the four edges between corner cells (top, bottom, left, right) and then dispatches the four corner cells through `cornerGlyph`. Skips entirely when no side is active or the rect is empty; guards against degenerate height/width by checking `y1 != y0` / `x1 != x0` before drawing the bottom/right edges.
+  - Added `cornerGlyph(cornerChar, hChar, vChar, hasH, hasV) rune` which returns the full corner glyph when both adjacent edges are active, the horizontal/vertical edge rune when only one adjacent edge is active (so partial borders render as clean line continuations), and `0` when neither is active.
+
+  3. main.go
+  Reworked the demo to exercise all three border modes: `header` now has a full rounded cyan border on all four sides; `wrapped` is a Box with only `Top` + `Bottom` set using `BorderSharp` in bright yellow (showing partial borders rendering as horizontal rules with no stray corners); `hint` is a Box with only `Left: true` using `BorderThick` in bright black (showing a single-side accent rail). Added inner padding on the partial-border boxes so text doesn't butt against the frame.
+
 # v0.0.9
 
   1. tuix/node.go

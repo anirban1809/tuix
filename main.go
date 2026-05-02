@@ -21,21 +21,43 @@ func App(props tuix.Props) tuix.Element {
 	accent := tuix.NewStyle().Foreground(tuix.Cyan).Bold(true)
 	dim := tuix.NewStyle().Foreground(tuix.BrightBlack)
 
-	// Inner Box: 0 rows top/bottom, 2 cols left/right of padding around the
-	// header text, with its own background — the cyan text inherits the blue
-	// BG across the full padded width.
+	// Full rounded border on all four sides, cyan-tinted.
 	header := tuix.Box(
 		tuix.Props{Direction: tuix.Row, Padding: [4]int{0, 2, 0, 2}},
-		tuix.NewStyle().Background(tuix.Hex("#1e3a8a")),
+		tuix.NewStyle().
+			Background(tuix.Hex("#1e3a8a")).
+			Border(tuix.Border{
+				Top: true, Right: true, Bottom: true, Left: true,
+				Chars: tuix.BorderRounded,
+				Color: tuix.Cyan,
+			}),
 		tuix.Text("── spacebar appends a new line ──", accent),
 	)
 
 	longBlock := tuix.MultilineText(strings.Join(lines, "\n"), bodyStyle)
 
 	paragraph := "The quick brown fox jumps over the lazy dog while a curious cat watches from the windowsill above."
-	wrapped := tuix.WrappedText(paragraph, bodyStyle)
+	// Partial border: top + bottom rules only, no side edges.
+	wrapped := tuix.Box(
+		tuix.Props{Padding: [4]int{0, 1, 0, 1}},
+		tuix.NewStyle().Border(tuix.Border{
+			Top: true, Bottom: true,
+			Chars: tuix.BorderSharp,
+			Color: tuix.BrightYellow,
+		}),
+		tuix.WrappedText(paragraph, bodyStyle),
+	)
 
-	hint := tuix.Text("Space to append a line · Esc to quit", dim)
+	// Single-side accent: just a left rail.
+	hint := tuix.Box(
+		tuix.Props{Padding: [4]int{0, 0, 0, 1}},
+		tuix.NewStyle().Border(tuix.Border{
+			Left:  true,
+			Chars: tuix.BorderThick,
+			Color: tuix.BrightBlack,
+		}),
+		tuix.Text("Space to append a line · Esc to quit", dim),
+	)
 
 	// Outer Box: 1 row top/bottom, 2 cols left/right of gray padding around
 	// the whole column. The padding is visible because the Box now paints

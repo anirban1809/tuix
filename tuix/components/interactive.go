@@ -16,24 +16,18 @@ func Button(label string, focused bool) tuix.Element {
 }
 
 // Input renders a labeled text field. Shows a custom cursor when focused.
-func Input(label string, cursor string, focused bool, onChange func(value string)) tuix.Element {
-	value, setValue := tuix.UseState("")
-
+func Input(label string, cursor string, focused bool, value string, onChange func(value string)) tuix.Element {
 	const fieldWidth = 22
 
 	if focused {
 		if tuix.CurrentKey.Code == tuix.KeyBackspace {
 			if len(value) > 0 {
-				setValue(value[:len(value)-1])
+				onChange(value[:len(value)-1])
 			}
 		} else if tuix.CurrentKey.Code == tuix.KeySpace {
-			setValue(value + " ")
+			onChange(value + " ")
 		} else if tuix.CurrentKey.Rune != 0 {
-			setValue(value + string(tuix.CurrentKey.Rune))
-		}
-
-		if onChange != nil {
-			onChange(value)
+			onChange(value + string(tuix.CurrentKey.Rune))
 		}
 
 	}

@@ -70,14 +70,30 @@ func (r *ComponentRenderer) Render(next Element) {
 
 func buildLayoutTree(element Element) *LayoutNode {
 	p := element.Layout
+	b := element.Style.border
+
+	padTop, padRight, padBottom, padLeft := p.PaddingTop, p.PaddingRight, p.PaddingBottom, p.PaddingLeft
+	if b.Top {
+		padTop++
+	}
+	if b.Right {
+		padRight++
+	}
+	if b.Bottom {
+		padBottom++
+	}
+	if b.Left {
+		padLeft++
+	}
+
 	l := &LayoutNode{
 		Direction:     p.Direction,
 		WidthSizing:   p.WidthSizing,
 		HeightSizing:  p.HeightSizing,
-		paddingTop:    p.PaddingTop,
-		paddingRight:  p.PaddingRight,
-		paddingBottom: p.PaddingBottom,
-		paddingLeft:   p.PaddingLeft,
+		paddingTop:    padTop,
+		paddingRight:  padRight,
+		paddingBottom: padBottom,
+		paddingLeft:   padLeft,
 		gap:           p.Gap,
 		alignment:     p.Align,
 		justify:       p.Justify,
@@ -143,6 +159,7 @@ func paint(element Element, rects []Rect, idx int, screen *Screen, parentStyle S
 				screen.SetCell(x, y, ' ', effective)
 			}
 		}
+		paintBorder(screen, rect, effective, element.Style.border)
 
 	case ElementText:
 		x := rect.X
@@ -183,3 +200,70 @@ func paint(element Element, rects []Rect, idx int, screen *Screen, parentStyle S
 }
 
 var Renderer = NewRenderer(StdOutScreen)
+
+func paintBorder(screen *Screen, rect Rect, base Style, b Border) {
+	if !b.Any() || rect.Width == 0 || rect.Height == 0 {
+		return
+	}
+
+	bs := base
+	if b.Color.Type != ColorNone {
+		bs.foreground = b.Color
+	}
+	c := b.Chars
+
+	x0, y0 := rect.X, rect.Y
+	x1, y1 := rect.X+rect.Width-1, rect.Y+rect.Height-1
+
+	if b.Top {
+		for x := x0 + 1; x < x1; x++ {
+			screen.SetCell(x, y0, c.Top, bs)
+		}
+	}
+	if b.Bottom && y1 != y0 {
+		for x := x0 + 1; x < x1; x++ {
+			screen.SetCell(x, y1, c.Bottom, bs)
+		}
+	}
+	if b.Left {
+		for y := y0 + 1; y < y1; y++ {
+			screen.SetCell(x0, y, c.Left, bs)
+		}
+	}
+	if b.Right && x1 != x0 {
+		for y := y0 + 1; y < y1; y++ {
+			screen.SetCell(x1, y, c.Right, bs)
+		}
+	}
+
+	if g := cornerGlyph(c.TopLeft, c.Top, c.Left, b.Top, b.Left); g != 0 {
+		screen.SetCell(x0, y0, g, bs)
+	}
+	if g := cornerGlyph(c.TopRight, c.Top, c.Right, b.Top, b.Right); g != 0 {
+		screen.SetCell(x1, y0, g, bs)
+	}
+	if g := cornerGlyph(c.BottomLeft, c.Bottom, c.Left, b.Bottom, b.Left); g != 0 {
+		screen.SetCell(x0, y1, g, bs)
+	}
+	if g := cornerGlyph(c.BottomRight, c.Bottom, c.Right, b.Bottom, b.Right); g != 0 {
+		screen.SetCell(x1, y1, g, bs)
+	}
+}
+
+// cornerGlyph picks the rune to draw at a single corner of a box border.
+// cornerChar is the full corner glyph (e.g. '┌' for top-left). hChar is the
+// horizontal edge glyph (e.g. '─') and vChar is the vertical edge glyph
+// (e.g. '│'). hasH and hasV report whether the horizontal/vertical edges
+// meeting this corner are active. Return 0 to skip drawing the corner cell.
+func cornerGlyph(cornerChar, hChar, vChar rune, hasH, hasV bool) rune {
+	switch {
+	case hasH && hasV:
+		return cornerChar
+	case hasH:
+		return hChar
+	case hasV:
+		return vChar
+	default:
+		return 0
+	}
+}
