@@ -230,6 +230,7 @@ func (s *Screen) HandleResize() {
 
 	s.termCols = cols
 	s.termRows = rows
+	s.SetDimensions(cols, rows)
 	s.dirty = true
 	s.anchorRow = 1
 	fmt.Fprint(s.out, "\033[H\033[2J")

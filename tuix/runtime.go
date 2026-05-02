@@ -16,7 +16,15 @@ func NewApp(width, height int) *App {
 
 	screen := NewScreenWriter(width, height, os.Stdout)
 	screen.Start()
-	screen.SetDimensions(width, height)
+
+	// Prefer the real terminal dimensions over the constructor args so
+	// layout fills the actual viewport. The args remain a fallback for
+	// environments where term.GetSize fails (e.g. piped output).
+	if screen.termCols > 0 && screen.termRows > 0 {
+		screen.SetDimensions(screen.termCols, screen.termRows)
+	} else {
+		screen.SetDimensions(width, height)
+	}
 
 	renderer := NewRenderer(screen)
 

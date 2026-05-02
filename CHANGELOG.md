@@ -1,3 +1,23 @@
+# v0.0.11
+
+  1. tuix/node.go
+  Extended `Props` with four new layout-control fields. `Align Alignment` and `Justify Justify` expose the cross-axis and main-axis alignment knobs the layout engine already supported (alignment was previously only reachable via the internal `LayoutNode` builder methods). `Width Sizing` and `Height Sizing` let callers override the previously-hardcoded `Fit()` defaults on `Box`. The zero value (`Sizing{} == Fixed(0)`) is treated as "unset" and falls back to `Fit()` inside `Box`, so existing callers are unaffected.
+
+  2. tuix/elements.go
+  `Box` now wires `props.Align` / `props.Justify` into the constructed `LayoutProps`, and respects `props.Width` / `props.Height` (with `Fit()` fallback when the field is unset). Previously these were silently ignored — the layout engine and renderer already supported them, but there was no path from the user-facing `Props` API to the internal `LayoutNode`.
+
+  3. tuix/renderer.go
+  The `Render` pass now respects the root node's own sizing intent when sizing the `available` rect. For each axis, if the root's sizing is `Fit`, `available` is trimmed down to the intrinsic content size; for `Grow` or `Fixed` roots, the full screen dimension is used. Previously the root always adopted the full screen rect regardless of its sizing — making `Fit` roots silently stretch to fill the terminal once the screen tracked real terminal dimensions.
+
+  4. tuix/runtime.go
+  `NewApp` now prefers the real terminal dimensions over the hardcoded constructor args. After `screen.Start()` populates `termCols` / `termRows` via `term.GetSize`, those values are passed to `SetDimensions`. The constructor args remain a fallback for environments where `term.GetSize` fails (e.g. when stdout is piped).
+
+  5. tuix/screen.go
+  `HandleResize` now also calls `SetDimensions(cols, rows)` so that SIGWINCH events propagate the new terminal size to the cell grid and to `s.width` / `s.height`. Previously only `termCols` / `termRows` (used by `Flush` / `EnsureRoom` for cursor bookkeeping) were updated, so the layout never reflowed when the terminal was resized mid-run.
+
+  6. main.go
+  Reworked the demo to exercise the new `Justify` / `Align` API and the renderer's sizing fix. `header` now has three labels (`◆ tuix demo`, `spacebar appends a line`, `v0.1`) with `Justify: JustifySpaceBetween` + `Align: AlignCenter`, demonstrating main-axis distribution across the full row width. Added a new `footer` Box that wraps `hint` in a `Justify: JustifyEnd` row to right-align it within the column. The outer column box now sets `Width: tuix.Grow(1)` so it fills the terminal width (giving `JustifySpaceBetween` slack to distribute), while leaving `Height` at the default `Fit` so the app doesn't stretch vertically.
+
 # v0.0.10
 
   1. tuix/style.go

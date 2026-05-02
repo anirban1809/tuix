@@ -8,17 +8,28 @@ const (
 )
 
 func Box(props Props, style Style, children ...Element) Element {
+	width := props.Width
+	if width == (Sizing{}) {
+		width = Fit()
+	}
+	height := props.Height
+	if height == (Sizing{}) {
+		height = Fit()
+	}
+
 	return Element{
 		Type: ElementBox,
 		Layout: LayoutProps{
 			Direction:     props.Direction,
-			WidthSizing:   Fit(),
-			HeightSizing:  Fit(),
+			WidthSizing:   width,
+			HeightSizing:  height,
 			Gap:           props.Gap,
 			PaddingTop:    props.Padding[0],
 			PaddingRight:  props.Padding[1],
 			PaddingBottom: props.Padding[2],
 			PaddingLeft:   props.Padding[3],
+			Align:         props.Align,
+			Justify:       props.Justify,
 		},
 		Style:    style,
 		Children: children,

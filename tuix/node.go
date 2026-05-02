@@ -6,7 +6,14 @@ type Props struct {
 	Direction Direction
 	Gap       int
 	Padding   [4]int
-	Values    map[string]any
+	Align     Alignment
+	Justify   Justify
+	// Width/Height sizing. The zero value (Sizing{} == Fixed(0)) is treated
+	// as unset and defaults to Fit() inside Box. Use Grow(1) to fill the
+	// parent's cross axis (or the terminal, when applied to the root).
+	Width  Sizing
+	Height Sizing
+	Values map[string]any
 }
 
 func (p Props) Get(key string) any {

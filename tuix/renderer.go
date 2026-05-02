@@ -50,13 +50,24 @@ func NewRenderer(screen *Screen) *ComponentRenderer {
 func (r *ComponentRenderer) Render(next Element) {
 	layoutRoot := buildLayoutTree(next)
 
-	_, contentH := IntrinsicSize(layoutRoot)
+	contentW, contentH := IntrinsicSize(layoutRoot)
 	screenH := r.screen.Height()
 	if contentH > screenH {
 		r.screen.Resize(r.screen.Width(), contentH)
 	}
 
-	available := Rect{X: 0, Y: 0, Width: r.screen.Width(), Height: r.screen.Height()}
+	// Respect the root's own sizing intent. A Fit root should occupy only
+	// its intrinsic size; Grow/Fixed roots adopt the full screen rect.
+	availW := r.screen.Width()
+	availH := r.screen.Height()
+	if layoutRoot.WidthSizing.Mode == SizingFit && contentW < availW {
+		availW = contentW
+	}
+	if layoutRoot.HeightSizing.Mode == SizingFit && contentH < availH {
+		availH = contentH
+	}
+
+	available := Rect{X: 0, Y: 0, Width: availW, Height: availH}
 	rects := ComputeLayout(layoutRoot, available)
 
 	r.screen.Clear()
