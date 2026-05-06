@@ -222,6 +222,7 @@ func RuneWidth(value rune) int {
 // It must update the Screen so the next paint targets the new dimensions
 // and so EnsureRoom's bounds reflect the new viewport.
 func (s *Screen) HandleResize() {
+	fmt.Print("\033[H\033[2J\033[3J") /* clear the screen */
 	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
 
 	if err != nil {

@@ -1,3 +1,11 @@
+# v0.0.12
+
+  1. tuix/runtime.go
+  Reworked the shutdown path in `Run` so all exit signals funnel through a single `sync.Once`-guarded `requestQuit` closure. Previously the input goroutine closed `quit` directly on stdin errors and called `close(quit)` + `a.screen.Stop()` + `os.Exit(0)` inline on Escape/Ctrl+C. The inline `os.Exit` bypassed any deferred cleanup, and concurrent shutdown paths could double-close `quit` and panic. Now the input goroutine only signals `requestQuit()`, and the main loop's `case <-quit` branch calls `a.screen.Stop()` before returning, so terminal cleanup runs deterministically on every exit path.
+
+  2. tuix/screen.go
+  `HandleResize` now emits `\033[H\033[2J\033[3J` (cursor home + clear visible + clear scrollback) before re-querying terminal dimensions via `term.GetSize`. Without this, leftover glyphs from the pre-resize viewport remained on screen until something repainted over them, producing visible artifacts when the terminal was made smaller mid-run. Clearing first guarantees the next paint draws onto a blank canvas sized to the new dimensions.
+
 # v0.0.11
 
   1. tuix/node.go

@@ -3,6 +3,7 @@ package tuix
 import (
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -41,6 +42,10 @@ func (a *App) Run(fn func(props Props) Element, props Props) {
 	a.Render(fn, props)
 
 	quit := make(chan struct{})
+	var quitOnce sync.Once
+	requestQuit := func() {
+		quitOnce.Do(func() { close(quit) })
+	}
 
 	resize := make(chan os.Signal, 1)
 	signal.Notify(resize, syscall.SIGWINCH)
@@ -59,14 +64,12 @@ func (a *App) Run(fn func(props Props) Element, props Props) {
 		for {
 			n, err := os.Stdin.Read(buf)
 			if err != nil {
-				close(quit)
+				requestQuit()
 				return
 			}
 			key := ParseKey(buf[:n])
 			if key.Code == KeyEscape || key.Code == KeyCtrlC {
-				close(quit)
-				a.screen.Stop()
-				os.Exit(0)
+				requestQuit()
 				return
 			}
 			Keys <- key
@@ -76,6 +79,7 @@ func (a *App) Run(fn func(props Props) Element, props Props) {
 	for {
 		select {
 		case <-quit:
+			a.screen.Stop()
 			return
 		case key := <-Keys:
 			CurrentKey = key
