@@ -94,9 +94,15 @@ func (s *Screen) Start() {
 
 	//hide cursor
 	fmt.Fprintf(s.out, "\033[?25l")
+
+	//enable bracketed paste mode
+	fmt.Fprintf(s.out, "\033[?2004h")
 }
 
 func (s Screen) Stop() {
+	//disable bracketed paste mode
+	fmt.Fprintf(s.out, "\033[?2004l")
+
 	//show cursor
 	fmt.Fprintf(s.out, "\033[?25h")
 

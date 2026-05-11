@@ -70,13 +70,22 @@ func (r *ComponentRenderer) Render(next Element) {
 	available := Rect{X: 0, Y: 0, Width: availW, Height: availH}
 	rects := ComputeLayout(layoutRoot, available)
 
+	// After ComputeLayout, the root's intrinsicHeight reflects any reflow
+	// passes (wrapped text expanding the tree). Use that for scrollback
+	// bookkeeping instead of the pre-reflow value from earlier.
+	finalH := layoutRoot.intrinsicHeight
+	if finalH > r.screen.Height() {
+		r.screen.Resize(r.screen.Width(), finalH)
+		rects = ComputeLayout(layoutRoot, Rect{X: 0, Y: 0, Width: availW, Height: finalH})
+	}
+
 	r.screen.Clear()
 	paint(next, rects, 0, r.screen, Style{})
 
-	// After paint: if contentH overflows the terminal viewport, write the
+	// After paint: if content overflows the terminal viewport, write the
 	// rows inline so the terminal scrolls older content into scrollback.
 	// Must run after paint because it reads from the cell grid.
-	r.screen.EnsureRoom(contentH)
+	r.screen.EnsureRoom(finalH)
 }
 
 func buildLayoutTree(element Element) *LayoutNode {

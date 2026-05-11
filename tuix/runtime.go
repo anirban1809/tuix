@@ -60,19 +60,21 @@ func (a *App) Run(fn func(props Props) Element, props Props) {
 	}()
 
 	go func() {
-		buf := make([]byte, 32)
+		buf := make([]byte, 1024)
+		var scanner KeyScanner
 		for {
 			n, err := os.Stdin.Read(buf)
 			if err != nil {
 				requestQuit()
 				return
 			}
-			key := ParseKey(buf[:n])
-			if key.Code == KeyEscape || key.Code == KeyCtrlC {
-				requestQuit()
-				return
+			for _, key := range scanner.Feed(buf[:n]) {
+				if key.Code == KeyCtrlC {
+					requestQuit()
+					return
+				}
+				Keys <- key
 			}
-			Keys <- key
 		}
 	}()
 

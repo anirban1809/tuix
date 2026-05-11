@@ -1,5 +1,7 @@
 package tuix
 
+import "bytes"
+
 // KeyCode identifies special (non-printable) keys.
 type KeyCode int
 
@@ -21,12 +23,15 @@ const (
 	KeyRight
 	KeySpace
 	KeyCtrlC
+	KeyPaste
 )
 
 // Key represents a single keyboard event. Either Code or Rune is set.
+// When Code == KeyPaste, Paste holds the full pasted text.
 type Key struct {
-	Code KeyCode
-	Rune rune
+	Code  KeyCode
+	Rune  rune
+	Paste string
 }
 
 // ParseKey converts raw terminal bytes into a Key.
@@ -64,4 +69,56 @@ func ParseKey(b []byte) Key {
 		return Key{Code: KeyCtrlC}
 	}
 	return Key{Rune: rune(b[0])}
+}
+
+// Bracketed paste mode wraps pasted content in these markers so applications
+// can distinguish a paste from a fast burst of typed keystrokes. Terminals
+// emit them only after we send the enable sequence \x1b[?2004h on startup.
+var (
+	pasteStart = []byte{0x1B, '[', '2', '0', '0', '~'}
+	pasteEnd   = []byte{0x1B, '[', '2', '0', '1', '~'}
+)
+
+// KeyScanner is a stateful parser that converts raw stdin reads into Key
+// events. State is required because a single paste can span many Read calls
+// and the end marker may itself straddle a Read boundary.
+type KeyScanner struct {
+	inPaste  bool
+	pasteBuf []byte
+}
+
+// Feed consumes one chunk of stdin bytes and returns any complete Key events
+// produced. Unfinished sequences (mid-paste content, partial end marker) are
+// retained inside the scanner for the next call.
+func (s *KeyScanner) Feed(b []byte) []Key {
+	var keys []Key
+	for len(b) > 0 {
+		if s.inPaste {
+			s.pasteBuf = append(s.pasteBuf, b...)
+			b = nil
+			idx := bytes.Index(s.pasteBuf, pasteEnd)
+			if idx < 0 {
+				return keys
+			}
+			pasted := string(s.pasteBuf[:idx])
+			rest := append([]byte(nil), s.pasteBuf[idx+len(pasteEnd):]...)
+			s.pasteBuf = nil
+			s.inPaste = false
+			keys = append(keys, Key{Code: KeyPaste, Paste: pasted})
+			b = rest
+			continue
+		}
+		if bytes.HasPrefix(b, pasteStart) {
+			b = b[len(pasteStart):]
+			s.inPaste = true
+			continue
+		}
+		consumed := 1
+		if b[0] == 0x1B && len(b) >= 3 && b[1] == '[' {
+			consumed = 3
+		}
+		keys = append(keys, ParseKey(b[:consumed]))
+		b = b[consumed:]
+	}
+	return keys
 }

@@ -1,14 +1,47 @@
 package components
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/anirban1809/tuix/tuix"
 )
+
+// ansiSequence matches CSI escape sequences (colors, cursor moves, etc).
+// Pasted content from a colored terminal can carry these; we drop them so
+// they don't render as literal "[42m" garbage in the input.
+var ansiSequence = regexp.MustCompile(`\x1b\[[0-9;?]*[a-zA-Z]`)
+
+// lineEndings normalizes clipboard line breaks to '\n'. macOS pastes use
+// '\r', Windows uses '\r\n', and our renderer only respects '\n'.
+var lineEndings = strings.NewReplacer("\r\n", "\n", "\r", "\n")
+
+// sanitizePaste filters clipboard text for safe display in a text input:
+// normalizes line endings, strips ANSI escape sequences, drops control
+// characters except newline and tab (which the multiline renderer handles),
+// and preserves all printable unicode.
+func sanitizePaste(s string) string {
+	s = lineEndings.Replace(s)
+	s = ansiSequence.ReplaceAllString(s, "")
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\t' {
+			return r
+		}
+		if r < 0x20 || r == 0x7F {
+			return -1
+		}
+		return r
+	}, s)
+}
 
 // Button renders a pressable label. Highlighted when focused.
 func Button(label string, focused bool) tuix.Element {
 	var style tuix.Style
 	if focused {
-		style = tuix.NewStyle().Foreground(tuix.Black).Background(tuix.Cyan).Bold(true)
+		style = tuix.NewStyle().
+			Foreground(tuix.Black).
+			Background(tuix.Cyan).
+			Bold(true)
 	} else {
 		style = tuix.NewStyle().Foreground(tuix.White)
 	}
@@ -16,7 +49,13 @@ func Button(label string, focused bool) tuix.Element {
 }
 
 // Input renders a labeled text field. Shows a custom cursor when focused.
-func Input(label string, cursor string, focused bool, value string, onChange func(value string)) tuix.Element {
+func Input(
+	label string,
+	cursor string,
+	focused bool,
+	value string,
+	onChange func(value string),
+) tuix.Element {
 	const fieldWidth = 22
 
 	if focused {
@@ -26,6 +65,8 @@ func Input(label string, cursor string, focused bool, value string, onChange fun
 			}
 		} else if tuix.CurrentKey.Code == tuix.KeySpace {
 			onChange(value + " ")
+		} else if tuix.CurrentKey.Code == tuix.KeyPaste {
+			onChange(value + sanitizePaste(tuix.CurrentKey.Paste))
 		} else if tuix.CurrentKey.Rune != 0 {
 			onChange(value + string(tuix.CurrentKey.Rune))
 		}
@@ -40,14 +81,10 @@ func Input(label string, cursor string, focused bool, value string, onChange fun
 	}
 
 	return tuix.Box(
-		tuix.Props{Direction: tuix.Row},
+		tuix.Props{Direction: tuix.Row, Width: tuix.Grow(1), Align: tuix.AlignStart},
 		tuix.NewStyle(),
-		tuix.Box(
-			tuix.Props{Direction: tuix.Row},
-			tuix.NewStyle(),
-			tuix.Text(label+" ", tuix.NewStyle().Foreground(tuix.White)),
-			tuix.MultilineText(value+cursor, fieldStyle),
-		),
+		tuix.Text(label+" ", tuix.NewStyle().Foreground(tuix.White)),
+		tuix.WrappedText(value+cursor, fieldStyle),
 	)
 }
 
@@ -56,7 +93,8 @@ func Checkbox(label string, focused bool, onChange func(bool)) tuix.Element {
 	checked, setChecked := tuix.UseState(false)
 
 	if focused {
-		if tuix.CurrentKey.Code == tuix.KeySpace || tuix.CurrentKey.Code == tuix.KeyEnter {
+		if tuix.CurrentKey.Code == tuix.KeySpace ||
+			tuix.CurrentKey.Code == tuix.KeyEnter {
 			setChecked(!checked)
 		}
 	}
@@ -99,7 +137,10 @@ func List(items []string, focused bool) tuix.Element {
 		if i == selected {
 			prefix = "> "
 			if focused {
-				style = tuix.NewStyle().Background(tuix.Blue).Foreground(tuix.Cyan).Bold(true)
+				style = tuix.NewStyle().
+					Background(tuix.Blue).
+					Foreground(tuix.Cyan).
+					Bold(true)
 			} else {
 				style = tuix.NewStyle().Foreground(tuix.White).Bold(true)
 			}
@@ -108,7 +149,10 @@ func List(items []string, focused bool) tuix.Element {
 		}
 		children[i] = tuix.Text(prefix+item, style)
 	}
-	return tuix.Box(tuix.Props{Direction: tuix.Column}, tuix.NewStyle(), children...)
+	return tuix.Box(
+		tuix.Props{Direction: tuix.Column},
+		tuix.NewStyle(),
+		children...)
 }
 
 // SelectPicker renders a single-line option cycler with < > arrows.

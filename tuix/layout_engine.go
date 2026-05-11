@@ -5,17 +5,38 @@ func IntrinsicSize(root *LayoutNode) (width, height int) {
 	return measure(root)
 }
 
-// ComputeLayout runs the two-pass layout algorithm on the given tree and
-// returns a flat slice of Rects in depth-first, pre-order (parent before
-// children). The root is given the provided available Rect as its bounds.
+// ComputeLayout runs the layout algorithm on the given tree and returns a
+// flat slice of Rects in depth-first, pre-order (parent before children).
+// The root is given the provided available Rect as its bounds.
+//
+// Nodes with a reflow callback (e.g. wrapped text) need a follow-up
+// measure+layout pass: the first layout pass calls reflow once widths are
+// known, updating leaf heights; the second measure picks up those heights
+// and propagates them through ancestor boxes so that bordered/padded
+// containers around wrapped text grow to fit their content.
 func ComputeLayout(root *LayoutNode, available Rect) []Rect {
-	// Pass 1 — measure intrinsic sizes bottom-up.
 	root.intrinsicWidth, root.intrinsicHeight = measure(root)
-
-	// Pass 2 — assign concrete rects top-down.
 	var out []Rect
 	layout(root, available, &out)
+
+	if hasReflow(root) {
+		root.intrinsicWidth, root.intrinsicHeight = measure(root)
+		out = out[:0]
+		layout(root, available, &out)
+	}
 	return out
+}
+
+func hasReflow(n *LayoutNode) bool {
+	if n.reflow != nil {
+		return true
+	}
+	for _, c := range n.Children {
+		if hasReflow(c) {
+			return true
+		}
+	}
+	return false
 }
 
 // measure fills in intrinsicWidth and intrinsicHeight for every node in the
@@ -82,6 +103,15 @@ func measure(n *LayoutNode) (int, int) {
 	}
 	if n.HeightSizing.Mode == SizingFit {
 		height += n.paddingTop + n.paddingBottom
+	}
+
+	// Preserve a previously-reflowed height. Reflow runs during the layout
+	// pass with the actual allocated width — more accurate than anything
+	// measure can derive from the (childless) reflow leaf itself. On a
+	// second measure pass this keeps the wrapped line count visible to
+	// ancestors so containers can grow.
+	if n.reflow != nil && n.intrinsicHeight > height {
+		height = n.intrinsicHeight
 	}
 
 	return width, height
@@ -288,6 +318,22 @@ func layout(n *LayoutNode, into Rect, out *[]Rect) {
 			setMainSize(&childRects[idx], n.Direction, size)
 			remainingSpace -= size
 			remainingWeight -= weight
+		}
+	}
+
+	// Row direction: child widths are only fully known once the grow
+	// distribution above has run. Fire reflow callbacks now so wrapped
+	// text inside a Row gets its line count from the allocated width
+	// (the Column path handles this earlier in the per-child loop).
+	if n.Direction == Row {
+		for i, child := range n.Children {
+			if child.reflow == nil {
+				continue
+			}
+			child.intrinsicHeight = child.reflow(childRects[i].Width)
+			if child.HeightSizing.Mode == SizingFit {
+				childRects[i].Height = child.intrinsicHeight
+			}
 		}
 	}
 

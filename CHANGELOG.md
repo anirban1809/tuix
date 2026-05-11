@@ -1,3 +1,29 @@
+# v0.0.13
+
+  1. tuix/key.go
+  Added bracketed paste support to the key parser. New `KeyPaste` constant on `KeyCode`, and a new `Paste string` field on `Key` that carries the full pasted text when `Code == KeyPaste`. Introduced `KeyScanner`, a stateful parser that converts raw stdin reads into Key events — state is required because a single paste can span many `os.Stdin.Read` calls and the end marker (`\x1b[201~`) can itself straddle a read boundary. `Feed(b []byte) []Key` accumulates paste bytes into an internal `pasteBuf` while `inPaste` is true, scans for the end marker via `bytes.Index`, and emits a single `KeyPaste` event with the full content once the marker is found. Non-paste bytes still flow through the existing `ParseKey` for one- or three-byte sequences (CSI arrows, control codes).
+
+  2. tuix/screen.go
+  `Start` now emits `\033[?2004h` (enable bracketed paste mode) after raw-mode setup and cursor hide. `Stop` emits `\033[?2004l` (disable) before restoring the terminal. Without these, the terminal emulator never wraps pasted content in `\x1b[200~ … \x1b[201~` and pastes arrive as a burst of indistinguishable keystrokes.
+
+  3. tuix/runtime.go
+  Replaced the per-Read `ParseKey(buf[:n])` call with a long-lived `KeyScanner` whose `Feed` is called for every chunk. The stdin buffer was bumped from 32 to 1024 bytes — pastes can be many kilobytes, and a 32-byte buffer would slice them into ~32 chunks per kB. The escape/Ctrl-C exit check now runs inside the per-key loop emitted by the scanner so a single read containing multiple events still triggers the right shutdown.
+
+  4. tuix/components/interactive.go
+  Added paste handling to `Input`. New module-level `ansiSequence` regexp (`\x1b\[[0-9;?]*[a-zA-Z]`) strips CSI escape sequences from clipboard content so colored terminal output pasted into a field doesn't render as literal `[42m` garbage. New `lineEndings` `strings.NewReplacer` normalizes `\r\n` → `\n` and lone `\r` → `\n` (macOS clipboards deliver newlines as `\r`, Windows as `\r\n`; the renderer only understands `\n`). New `sanitizePaste(s string) string` combines those with a `strings.Map` that drops control characters below `0x20` and `0x7F` except `\n` and `\t`. The `Input` body now handles `tuix.KeyPaste` by appending `sanitizePaste(tuix.CurrentKey.Paste)` to the field value. The rendered structure switched from `MultilineText` to `WrappedText` so wrapped pastes break on the field's available width, and the outer Box gained `Width: tuix.Grow(1)` plus `Align: tuix.AlignStart` so the label sits inline at the top of the row while continuation lines indent past the label width.
+
+  5. tuix/layout_engine.go
+  Extended the layout engine so reflow callbacks fire correctly when wrapped text lives inside a Row parent, and so reflowed heights propagate up through ancestor boxes. Three coordinated changes:
+    - In `layout()`, added a post-grow-distribution block that fires `child.reflow(childRects[i].Width)` for every reflow-capable child when `n.Direction == Row`. The Column path already did this inline because cross-axis width is resolved per-child; in Row direction, Grow children's widths aren't known until after the grow loop completes. `SizingFit`-height children also get `childRects[i].Height` updated to the reflowed value.
+    - In `measure()`, added a clause that preserves an already-reflowed `intrinsicHeight` (`if n.reflow != nil && n.intrinsicHeight > height { height = n.intrinsicHeight }`). Without this, a second measure pass would clobber the reflowed leaf height back to 0 (since reflow leaves have no children to sum from under `SizingFit`).
+    - `ComputeLayout` now runs measure→layout twice when the tree contains any reflow node (`hasReflow(root)`). The first pass establishes widths and fires reflow; the second pass re-measures with the now-correct leaf heights so ancestor boxes (padded containers, borders) grow to fit. Bounded to two passes since width allocations don't depend on heights in this engine, so reflow stabilizes after one round.
+
+  6. tuix/renderer.go
+  After `ComputeLayout` returns, `Render` now reads `layoutRoot.intrinsicHeight` (which reflects the second measure pass) instead of the pre-reflow `contentH` computed earlier. If the post-reflow height exceeds the screen's current height, the screen is resized and `ComputeLayout` runs a third time against the enlarged available rect. `EnsureRoom` is called with the post-reflow height too, so scrollback bookkeeping accounts for any growth caused by wrapped paste content.
+
+  7. main.go
+  Rewrote the demo as a bracketed-paste verification UI. The previous spacebar-appends-a-line demo is replaced with a focused `components.Input` field (rounded yellow border) plus a sibling stats block showing `paste events: N` and a `WrappedText` view of `last paste (raw):` — the side-by-side lets you compare the sanitized field value against the unfiltered clipboard content. Outer column uses `Width: tuix.Grow(1)` so the input has the full terminal width to wrap into, and `Height` stays at default `Fit` so the app sizes to its content.
+
 # v0.0.12
 
   1. tuix/runtime.go
