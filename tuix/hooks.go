@@ -67,3 +67,37 @@ func RunEffects() {
 		Effects[i].dirty = false
 	}
 }
+
+// Context carries a value down the component tree without prop-drilling.
+// Each Context owns an independent stack of values; the innermost active
+// Provide call wins. The zero value of Context is not usable — construct
+// one with CreateContext so the defaultValue is set.
+type Context[T any] struct {
+	defaultValue T
+	stack        []T
+}
+
+// CreateContext returns a new Context whose UseContext readers see
+// defaultValue when no enclosing Provide is active.
+func CreateContext[T any](defaultValue T) *Context[T] {
+	return &Context[T]{defaultValue: defaultValue}
+}
+
+// Provide pushes value onto the context's stack, runs render (during which
+// any descendant calling UseContext on this context observes value), then
+// pops the value back off. The pop runs via defer so a panic in render
+// still unwinds the stack cleanly.
+func (c *Context[T]) Provide(value T, render func() Element) Element {
+	c.stack = append(c.stack, value)
+	defer func() { c.stack = c.stack[:len(c.stack)-1] }()
+	return render()
+}
+
+// UseContext returns the value of the innermost active Provide for c, or
+// c's defaultValue if no Provide is currently on the stack.
+func UseContext[T any](c *Context[T]) T {
+	if len(c.stack) == 0 {
+		return c.defaultValue
+	}
+	return c.stack[len(c.stack)-1]
+}

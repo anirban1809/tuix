@@ -1,3 +1,8 @@
+# v0.0.15
+
+  1. tuix/hooks.go
+  Added a React-style Context API for sharing values across a component subtree without prop-drilling. Three new exports: the generic type `Context[T any]` (holds a `defaultValue T` and an internal `stack []T`), the constructor `CreateContext[T](defaultValue T) *Context[T]`, and the reader `UseContext[T](c *Context[T]) T` which returns the top of the context's stack or its `defaultValue` when the stack is empty. The provider is a method `(*Context[T]).Provide(value T, render func() Element) Element` that appends `value` to the stack, runs `render` (during which any descendant calling `UseContext` on the same Context observes `value`), and pops via `defer` so a panic in `render` still unwinds the stack cleanly. Each Context owns its own independent stack, keyed by the Context pointer's identity rather than by a positional cursor like `UseState` — so there is no cursor reset to coordinate with `Render`'s two-pass model. Important shape note: `Provide` takes a **render thunk**, not pre-built children. Because Go evaluates function arguments eagerly, a hypothetical `Provide(value, child1, child2)` form would execute the children before the value was pushed onto the stack, and `UseContext` inside them would see the default value instead of the provided one. The thunk defers descendant evaluation until *after* the push, which is the only place during a synchronous render where the new value is visible.
+
 # v0.0.14
 
   1. tuix/elements.go
