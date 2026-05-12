@@ -7,7 +7,11 @@ Tuix brings the declarative, composable model of React — functional components
 > 📖 **Full documentation:** [DOCS.md](DOCS.md) — every feature, runnable examples, deep dives.
 > 🚀 **Try it now:** `go run ./examples/hello` (or any of [11 other examples](examples/)).
 
+#### Simple Example:
 <img width="800" height="400" alt="tuix-demo (2)" src="https://github.com/user-attachments/assets/355ffbfd-1b0a-487b-af4a-9bd1f31de01d" />
+
+#### Advanced Example
+https://github.com/user-attachments/assets/a84ee1de-124f-4657-8077-0cafa19eb352
 
 ---
 
