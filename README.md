@@ -2,7 +2,10 @@
 
 A Go framework for building interactive terminal UIs with React-style components and hooks.
 
-Tuix brings the declarative, composable model of React — functional components, `UseState`, `UseEffect`, flexbox layout — to the terminal. You describe *what* your UI looks like; tuix handles measuring, laying out, rendering, and diffing only the cells that changed.
+Tuix brings the declarative, composable model of React — functional components, `UseState`, `UseEffect`, `UseContext`, flexbox layout — to the terminal. You describe *what* your UI looks like; tuix handles measuring, laying out, rendering, and diffing only the cells that changed.
+
+> 📖 **Full documentation:** [DOCS.md](DOCS.md) — every feature, runnable examples, deep dives.
+> 🚀 **Try it now:** `go run ./examples/hello` (or any of [11 other examples](examples/)).
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -23,10 +26,11 @@ Tuix brings the declarative, composable model of React — functional components
 ## Features
 
 - **Functional components** — plain Go functions that return an `Element` tree
-- **Hooks** — `UseState` and `UseEffect` with dependency tracking
-- **Flexbox layout engine** — two-pass (measure → layout) with `Row`/`Column` direction, `Gap`, `Padding`, `Align`, `Justify`, and `Fixed`/`Grow`/`Fit` sizing
-- **Rich styling** — ANSI16, ANSI256, and RGB/Hex colors; bold, italic, underline
-- **Built-in component library** — Table, Tabs, Modal, Input, Button, Checkbox, List, SelectPicker, Spinner, ProgressBar, Alert, Badge
+- **Hooks** — [`UseState`](DOCS.md#usestate), [`UseEffect`](DOCS.md#useeffect), and [`UseContext`](DOCS.md#usecontext)
+- **Flexbox [layout engine](DOCS.md#layout)** — two-pass (measure → layout) with `Row`/`Column` direction, `Gap`, `Padding`, `Align`, `Justify`, and `Fixed`/`Grow`/`Fit` sizing
+- **Rich [styling](DOCS.md#styling)** — ANSI16, ANSI256, and RGB/Hex colors; bold, italic, underline; four border presets
+- **Bracketed paste** — multi-line clipboard content arrives as a single `KeyPaste` event
+- **Built-in [component library](DOCS.md#component-library)** — Table, Tabs, Modal, Input, Button, Checkbox, List, SelectPicker, Spinner, ProgressBar, Alert, Badge, Panel
 - **Efficient rendering** — cell-level diffing; only changed cells are written to the terminal
 - **Full Unicode support** — proper character-width handling via `go-runewidth`
 
@@ -35,7 +39,7 @@ Tuix brings the declarative, composable model of React — functional components
 ## Installation
 
 ```bash
-go get github.com/anirban/tuix
+go get github.com/anirban1809/tuix
 ```
 
 Requires Go 1.21+.
@@ -47,7 +51,11 @@ Requires Go 1.21+.
 ```go
 package main
 
-import tuix "github.com/anirban/tuix"
+import (
+    "fmt"
+
+    "github.com/anirban1809/tuix/tuix"
+)
 
 func App(props tuix.Props) tuix.Element {
     count, setCount := tuix.UseState(0)
@@ -55,22 +63,19 @@ func App(props tuix.Props) tuix.Element {
     if tuix.CurrentKey.Code == tuix.KeyEnter {
         setCount(count + 1)
     }
-    if tuix.CurrentKey.Code == tuix.KeyEscape {
-        tuix.Exit()
-    }
 
     label := tuix.NewStyle().Bold(true).Foreground(tuix.Cyan)
 
     return tuix.Box(
-        tuix.Props{Direction: tuix.Column, Gap: 1},
+        tuix.Props{Direction: tuix.Column, Gap: 1, Padding: [4]int{1, 2, 1, 2}},
         tuix.NewStyle(),
-        tuix.Text("Press Enter to count, Esc to quit", tuix.NewStyle()),
-        tuix.Text("Count: "+fmt.Sprintf("%d", count), label),
+        tuix.Text("Press Enter to count, Ctrl-C to quit", tuix.NewStyle()),
+        tuix.Text(fmt.Sprintf("Count: %d", count), label),
     )
 }
 
 func main() {
-    app := tuix.NewApp(80, 24)
+    app := tuix.NewApp(60, 6)
     app.Run(App, tuix.Props{})
 }
 ```
@@ -81,368 +86,46 @@ Run it:
 go run .
 ```
 
----
-
-## Core Concepts
-
-### Components
-
-A component is a Go function that accepts `tuix.Props` and returns a `tuix.Element`. Components can call hooks and compose child elements freely.
-
-```go
-func Greeting(props tuix.Props) tuix.Element {
-    name := props.Values["name"].(string)
-    return tuix.Text("Hello, "+name+"!", tuix.NewStyle().Bold(true))
-}
-
-// Use it inside another component:
-Greeting(tuix.Props{Values: map[string]any{"name": "world"}})
-```
-
-The top-level component is passed to `app.Run`. Re-renders are triggered by state changes or keyboard events.
+Press **Ctrl-C** to exit (there is no `Exit()` function).
 
 ---
 
-### Layout with Box
+## Examples
 
-`Box` is the primary layout container. It arranges children along a main axis and supports flexbox-style sizing.
+| Example                                              | Demonstrates                       |
+| ---------------------------------------------------- | ---------------------------------- |
+| [`hello`](examples/hello/)                           | minimal program                    |
+| [`counter`](examples/counter/)                       | `UseState` + keyboard              |
+| [`styling`](examples/styling/)                       | colors, borders, text styles       |
+| [`layout`](examples/layout/)                         | flexbox: direction/sizing/justify  |
+| [`input`](examples/input/)                           | `Input` component + paste          |
+| [`list`](examples/list/)                             | navigable `List`                   |
+| [`table`](examples/table/)                           | `Table` with `onChange`            |
+| [`tabs`](examples/tabs/)                             | `Tabs` switching content panels    |
+| [`modal`](examples/modal/)                           | `Modal` open/close                 |
+| [`effect-clock`](examples/effect-clock/)             | `UseEffect` + goroutine cleanup    |
+| [`context`](examples/context/)                       | `Context` + `Provide` thunk        |
+| [`conditional`](examples/conditional/)               | `If` helper                        |
 
-```go
-tuix.Box(
-    tuix.Props{
-        Direction: tuix.Row,          // or tuix.Column
-        Gap:       2,                 // space between children
-        Padding:   [4]int{1, 2, 1, 2}, // top, right, bottom, left
-        Align:     tuix.AlignCenter,  // cross-axis alignment
-        Justify:   tuix.JustifySpaceBetween, // main-axis distribution
-        Width:     tuix.Grow(1),      // fill available width
-        Height:    tuix.Fixed(10),    // exactly 10 rows tall
-    },
-    tuix.NewStyle(),
-    child1,
-    child2,
-)
-```
-
-**Sizing modes:**
-
-| Mode | Description |
-|------|-------------|
-| `tuix.Fixed(n)` | Exactly `n` characters wide/tall |
-| `tuix.Grow(n)` | Flex-grow with weight `n`; shares remaining space proportionally |
-| `tuix.Fit()` | Sizes to content (default) |
-
-**Alignment (cross-axis):** `AlignStart`, `AlignCenter`, `AlignEnd`, `AlignStretch`
-
-**Justification (main-axis):** `JustifyStart`, `JustifyEnd`, `JustifyCenter`, `JustifySpaceBetween`, `JustifySpaceAround`
-
----
-
-### Styling
-
-Styles are built with a fluent API and passed as the second argument to most element constructors.
-
-```go
-style := tuix.NewStyle().
-    Bold(true).
-    Italic(true).
-    Underline(true).
-    Foreground(tuix.Green).
-    Background(tuix.Hex("#1E1E2E"))
-```
-
-**Color types:**
-
-```go
-tuix.Red          // ANSI16 named color
-tuix.ANSI256(214) // ANSI 256-color palette
-tuix.Hex("#FF6B6B") // RGB truecolor
-```
-
-Available ANSI16 colors: `Black`, `Red`, `Green`, `Yellow`, `Blue`, `Magenta`, `Cyan`, `White`, and their `Bright` variants.
-
----
-
-### Hooks
-
-Hooks must be called unconditionally at the top level of a component function (same rules as React).
-
-#### UseState
-
-```go
-value, setValue := tuix.UseState(initialValue)
-
-// Read:
-fmt.Println(value)
-
-// Write (triggers re-render):
-setValue(value + 1)
-```
-
-#### UseEffect
-
-Runs a side-effect after render. Return a cleanup function (or `nil`) to run on dependency change or unmount.
-
-```go
-tuix.UseEffect(func() func() {
-    // effect runs when deps change
-    ticker := time.NewTicker(time.Second)
-    go func() {
-        for range ticker.C {
-            setTick(t => t + 1)
-        }
-    }()
-    return func() {
-        ticker.Stop() // cleanup
-    }
-}, []any{someDepValue})
+```bash
+go run ./examples/<name>
 ```
 
 ---
 
-### Keyboard Events
-
-The current key press is available globally as `tuix.CurrentKey` during each render cycle.
-
-```go
-type Key struct {
-    Code KeyCode // for special keys
-    Rune rune    // for printable characters
-}
-```
-
-**Special key codes:**
-
-| Constant | Key |
-|----------|-----|
-| `tuix.KeyEnter` | Enter |
-| `tuix.KeyBackspace` | Backspace |
-| `tuix.KeyEscape` | Escape |
-| `tuix.KeyTab` | Tab |
-| `tuix.KeyShiftTab` | Shift+Tab |
-| `tuix.KeyUp / Down / Left / Right` | Arrow keys |
-| `tuix.KeySpace` | Space |
-| `tuix.KeyCtrlC` | Ctrl+C |
-
-**Handling printable characters:**
-
-```go
-if tuix.CurrentKey.Rune != 0 {
-    setText(text + string(tuix.CurrentKey.Rune))
-}
-if tuix.CurrentKey.Code == tuix.KeyBackspace && len(text) > 0 {
-    setText(text[:len(text)-1])
-}
-```
-
----
-
-## Component Library
-
-All components live in `components/` and are imported alongside the core package.
-
-### Display
-
-#### Text
-
-```go
-tuix.Text("Hello world", tuix.NewStyle().Bold(true))
-```
-
-#### Badge
-
-```go
-components.Badge("Active", tuix.NewStyle().
-    Background(tuix.Green).Foreground(tuix.Black))
-```
-
-#### Alert
-
-```go
-components.Alert("Saved successfully", components.AlertSuccess)
-// Variants: AlertInfo, AlertSuccess, AlertWarning, AlertError
-```
-
-#### Spinner
-
-Automatically advances its animation frame on each render (no state needed).
-
-```go
-components.Spinner(tuix.NewStyle().Foreground(tuix.Cyan))
-```
-
-#### ProgressBar
-
-```go
-components.ProgressBar(0.65, 30, tuix.NewStyle().Foreground(tuix.Green))
-// args: fraction (0.0–1.0), width, style
-```
-
-#### Panel
-
-A bordered container with an optional title.
-
-```go
-components.Panel("Details", tuix.NewStyle(), childElement)
-```
-
----
-
-### Interactive
-
-Interactive components are focus-aware. Pass `focused bool` via `props.Values` and handle keyboard events in your component to update focus state.
-
-#### Button
-
-```go
-components.Button("Confirm", focused, tuix.NewStyle())
-```
-
-Renders highlighted when `focused` is `true`. Trigger with `tuix.KeyEnter`.
-
-#### Input
-
-```go
-text, setText := tuix.UseState("")
-
-// In your key handler:
-if tuix.CurrentKey.Rune != 0 {
-    setText(text + string(tuix.CurrentKey.Rune))
-}
-if tuix.CurrentKey.Code == tuix.KeyBackspace && len(text) > 0 {
-    setText(text[:len(text)-1])
-}
-
-components.Input(text, focused, tuix.NewStyle())
-```
-
-#### Checkbox
-
-```go
-checked, setChecked := tuix.UseState(false)
-
-if focused && tuix.CurrentKey.Code == tuix.KeySpace {
-    setChecked(!checked)
-}
-
-components.Checkbox("Enable notifications", checked, focused, tuix.NewStyle())
-```
-
-#### List
-
-```go
-items := []string{"Apple", "Banana", "Cherry"}
-cursor, setCursor := tuix.UseState(0)
-
-if focused {
-    if tuix.CurrentKey.Code == tuix.KeyDown {
-        setCursor(min(cursor+1, len(items)-1))
-    }
-    if tuix.CurrentKey.Code == tuix.KeyUp {
-        setCursor(max(cursor-1, 0))
-    }
-}
-
-components.List(items, cursor, focused, tuix.NewStyle())
-```
-
-#### SelectPicker
-
-Cycles through options with Left/Right arrows.
-
-```go
-options := []string{"Small", "Medium", "Large"}
-selected, setSelected := tuix.UseState(0)
-
-if focused {
-    if tuix.CurrentKey.Code == tuix.KeyRight {
-        setSelected((selected + 1) % len(options))
-    }
-    if tuix.CurrentKey.Code == tuix.KeyLeft {
-        setSelected((selected - 1 + len(options)) % len(options))
-    }
-}
-
-components.SelectPicker(options, selected, focused, tuix.NewStyle())
-```
-
----
-
-### Complex
-
-#### Table
-
-```go
-headers := []string{"Name", "Status", "Email"}
-rows := [][]string{
-    {"Alice", "Active", "alice@example.com"},
-    {"Bob",   "Away",   "bob@example.com"},
-}
-cursor, setCursor := tuix.UseState(0)
-
-if focused {
-    if tuix.CurrentKey.Code == tuix.KeyDown {
-        setCursor(min(cursor+1, len(rows)-1))
-    }
-    if tuix.CurrentKey.Code == tuix.KeyUp {
-        setCursor(max(cursor-1, 0))
-    }
-}
-
-components.Table(headers, rows, cursor, focused, tuix.NewStyle())
-```
-
-#### Tabs
-
-```go
-tabs := []string{"All", "Active", "Away"}
-active, setActive := tuix.UseState(0)
-
-if focused {
-    if tuix.CurrentKey.Code == tuix.KeyRight {
-        setActive((active + 1) % len(tabs))
-    }
-    if tuix.CurrentKey.Code == tuix.KeyLeft {
-        setActive((active - 1 + len(tabs)) % len(tabs))
-    }
-}
-
-components.Tabs(tabs, active, focused, tuix.NewStyle())
-```
-
-#### Modal
-
-Renders as an overlay. Place it last in the child list so it paints on top.
-
-```go
-open, setOpen := tuix.UseState(false)
-
-if tuix.CurrentKey.Code == tuix.KeyEscape {
-    setOpen(false)
-}
-
-if open {
-    return components.Modal(
-        "Contact Details",
-        tuix.NewStyle(),
-        detailsContent,
-    )
-}
-```
-
----
-
-## Full Example
-
-The file `main.go` in the repository is a complete contact management app showing:
-
-- Search input with live filtering
-- Tabbed navigation (All / Active / Away)
-- Scrollable table with row selection
-- Modal detail overlay
-- Focus cycling between panes with Tab / Shift+Tab
-
-Use it as a reference for structuring a real application.
+## Learn more
+
+Everything beyond the quick start lives in **[DOCS.md](DOCS.md)**:
+
+- [Quick start](DOCS.md#quick-start) · [Mental model](DOCS.md#mental-model)
+- [Text](DOCS.md#text) · [Box](DOCS.md#box) · [Styling](DOCS.md#styling) · [Borders](DOCS.md#borders)
+- [Layout: direction, gap, padding, sizing, justify/align](DOCS.md#layout)
+- [Hooks: UseState, UseEffect, UseContext](DOCS.md#hooks)
+- [Keyboard input + bracketed paste](DOCS.md#keyboard-input)
+- [Component library: Badge, Alert, Spinner, ProgressBar, Panel, Button, Input, Checkbox, List, SelectPicker, Table, Tabs, Modal](DOCS.md#component-library)
+- [Advanced: conditional rendering, context internals, the two-pass render](DOCS.md#advanced)
+- [Recipes: focus cycling, polling, toast notifications](DOCS.md#recipes)
+- [API reference index](DOCS.md#api-reference-index)
 
 ---
 
@@ -470,8 +153,10 @@ keyboard / ticker
 **Hooks cursor pattern:** State is identified by call order within a render, not by name. This is why hooks must never be called conditionally — the nth `UseState` call always corresponds to the same state slot.
 
 **Two-pass layout:**
-1. *Measure* — bottom-up: each node reports its intrinsic size
-2. *Layout* — top-down: parent distributes space and assigns concrete `Rect` to each child
+1. *Measure* — bottom-up: each node reports its intrinsic size.
+2. *Layout* — top-down: parent distributes space and assigns a concrete `Rect` to each child.
+
+**Two-pass render:** Each event triggers the component tree to run twice — once with `CurrentKey` set (so handlers fire), once with it zeroed (so paint reflects the post-handler state). See [DOCS.md#the-two-pass-render](DOCS.md#the-two-pass-render) for the gotcha this creates.
 
 ---
 
@@ -482,7 +167,7 @@ Contributions are welcome. Please follow these guidelines to keep the codebase c
 ### Getting Started
 
 ```bash
-git clone https://github.com/anirban/tuix
+git clone https://github.com/anirban1809/tuix
 cd tuix
 go mod download
 go test ./...
@@ -505,15 +190,15 @@ go test ./...
 
 - Follow standard Go conventions (`gofmt`, `golint`)
 - Keep component functions pure where possible; side effects belong in `UseEffect`
-- New built-in components go in `components/` — simple/display in `components.go`, interactive in `interactive.go`, compound in `complex.go`
+- New built-in components go in `tuix/components/` — simple/display in `components.go`, interactive in `interactive.go`, compound in `complex.go`
 - Avoid adding dependencies; the stdlib + the two existing deps cover most needs
 
 ### Adding a Component
 
-1. Write the component function in the appropriate file under `components/`
-2. It should accept a `tuix.Props` parameter (use `props.Values` for component-specific options)
-3. Demonstrate it in `main.go` or a separate example file
-4. Document its props and keyboard contract in this README under the relevant section
+1. Write the component function in the appropriate file under `tuix/components/`.
+2. Use plain typed parameters where possible; reserve `props.Values` for genuinely dynamic data.
+3. Add a runnable demo under `examples/<your-feature>/main.go`.
+4. Document signature, keyboard contract, and a snippet in [`DOCS.md`](DOCS.md) under the relevant section.
 
 ### Reporting Bugs
 

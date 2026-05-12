@@ -1,3 +1,26 @@
+# v0.0.16
+
+  1. DOCS.md
+  New file: the full feature-by-feature reference for tuix. Replaces the long "Core Concepts" / "Component Library" / "Full Example" sections that used to live in `README.md` and had drifted significantly from the actual code. Structured as Quick Start → Mental Model → Easy → Layout → Hooks → Keyboard → Components → Advanced → Recipes → API Reference Index. Every exported symbol is cross-linked to its source file (e.g. `tuix/hooks.go`, `tuix/components/complex.go`), every feature section ends with a link to a runnable example, and the in-doc TOC uses GitHub-flavored anchor links so jumping around is one click. Two non-obvious facts that were undocumented before now have dedicated subsections: the **two-pass render** (each event renders the tree twice — once with `CurrentKey` set, once with it zeroed — which is why unconditional `setValue(value+1)` in a component body increments by 2 per event) and the **Provide thunk rationale** (Go evaluates function arguments eagerly, so a hypothetical `Provide(value, children...)` form would evaluate children before pushing the context value; the thunk defers descendant evaluation until *after* the push).
+
+  2. examples/ (new directory, 12 self-contained programs)
+  Twelve runnable example programs, each in its own subdirectory with a single `main.go` under 100 lines. They progress easy → advanced and double as compile-time smoke tests for every signature documented in DOCS.md (if a future refactor renames `Provide` or reorders `Input`'s args, `go build ./examples/...` breaks loudly). Each file opens with a header comment naming the feature, the run command, and a deep-link into the relevant DOCS.md section.
+    - `examples/hello/main.go` — minimal Box + Text program; entry point for "did installation work?"
+    - `examples/counter/main.go` — `UseState` + key handling (Enter/Space/Backspace)
+    - `examples/styling/main.go` — every color mode (ANSI16 swatches, ANSI256 indexes, hex truecolor) and every border preset (`BorderSharp`/`Rounded`/`Double`/`Thick`) plus bold/italic/underline composition
+    - `examples/layout/main.go` — flexbox dashboard (header with `JustifySpaceBetween`, fixed sidebar + `Grow(1)` main, right-aligned footer)
+    - `examples/input/main.go` — `components.Input` with paste support, live "you typed:" preview pane
+    - `examples/list/main.go` — `components.List` playlist navigator (also documents the API gap that List has no `onChange`)
+    - `examples/table/main.go` — `components.Table` leaderboard with `onChange` callback driving a caption below
+    - `examples/tabs/main.go` — `components.Tabs` switching between three content panels via a `switch active` block
+    - `examples/modal/main.go` — `components.Modal` open/close, Enter to open + Esc to close, exercising the runtime's modal overlay semantics
+    - `examples/effect-clock/main.go` — `UseEffect` with empty deps spawning a 1s goroutine ticker, cleanup channel for the goroutine, demonstrating that setter closures captured at effect-creation time remain valid because they close over a stable state slot
+    - `examples/context/main.go` — `CreateContext`/`Provide`/`UseContext` with a multi-locale demo (en/es/fr/ja); two consumer components (`Greeting`, `Footer`) read the same context without prop-drilling, and Space cycles locales
+    - `examples/conditional/main.go` — `tuix.If` swapping between a logged-in and logged-out view; doc comment in the file calls out the eager-evaluation caveat
+
+  3. README.md
+  Rewrote as a slim entry point: hero + features + install + quick start + examples table + architecture diagram + contributing. Deleted ~360 lines of stale feature reference (the old "Core Concepts", "Component Library", and "Full Example" sections) that DOCS.md now owns. Fixed three drift bugs that had been live in the README: (a) wrong import path `github.com/anirban/tuix` → `github.com/anirban1809/tuix`, (b) reference to a nonexistent `tuix.Exit()` function in the quick-start (Ctrl-C is the actual exit path, handled by the runtime), and (c) "Full Example" section described `main.go` as a contact-management app with search/tabs/table/modal, which has been false since v0.0.13 when `main.go` was rewritten as the paste demo (and is now the theme/context demo as of v0.0.15). Also replaced the `git clone github.com/anirban/tuix` line in the contributing section with the correct path. Every feature bullet in the "Features" list now hyperlinks into the relevant DOCS.md anchor.
+
 # v0.0.15
 
   1. tuix/hooks.go
