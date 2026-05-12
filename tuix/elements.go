@@ -67,3 +67,15 @@ func WrappedText(text string, style Style) Element {
 		Style: style,
 	}
 }
+
+// If returns choice1 when condition is true and choice2 otherwise. It is a
+// ternary-style helper for composing element trees inline, since both
+// branches are evaluated before the call, use it for picking between
+// already-constructed elements rather than for guarding expensive work.
+func If(condition bool, choice1 Element, choice2 Element) Element {
+	if condition {
+		return choice1
+	} else {
+		return choice2
+	}
+}

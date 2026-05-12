@@ -1,3 +1,8 @@
+# v0.0.14
+
+  1. tuix/elements.go
+  Added a new `If(condition bool, choice1, choice2 Element) Element` helper for inline conditional composition of element trees, returning `choice1` when `condition` is true and `choice2` otherwise. The helper is a plain function call rather than a control structure, so both `choice1` and `choice2` are evaluated by the caller before `If` runs — it's intended for picking between already-constructed elements, not for guarding expensive work behind a branch. Doc comment follows the godoc convention (leading with the identifier) used by the other constructors in this file (`MultilineText`, `WrappedText`) so it surfaces cleanly in generated documentation.
+
 # v0.0.13
 
   1. tuix/key.go
