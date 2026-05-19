@@ -1,3 +1,32 @@
+# v0.0.18
+
+  1. tuix/markdown.go
+  Fixed two bugs in the markdown parser. (a) Fenced code block closing
+  detection now correctly measures the opening fence length by counting
+  consecutive backticks with a new markdownFenceLength helper, rather than
+  using len(trimmed) which treated the language tag (e.g. ```go) as part of
+  the fence length and caused the closing ``` to never match. A companion
+  isMarkdownClosingFence helper validates that the closing line has at least as
+  many backticks as the opener and nothing else, matching CommonMark semantics.
+  (b) Removed the stray cell.r = '̶' substitution in splitMarkdownWords that
+  replaced every non-space rune in a strikethrough span with a combining
+  overstrike glyph, producing unreadable text. Strikethrough spans now preserve
+  the original characters; the Style already carries the strikethrough flag for
+  renderers that support it.
+
+  2. tuix/markdown_test.go
+  New file: two regression tests covering the bugs fixed above.
+  TestMarkdownFencedCodeWithLanguageCloses verifies that a fenced block opened
+  with ```go closes on a bare ``` line and that the line following the block is
+  parsed as a normal paragraph. TestMarkdownStrikethroughKeepsText verifies
+  that ~~drop~~ renders as the literal word "drop" rather than combining-glyph
+  garbage. Helper markdownLinesText converts []markdownLine to []string for
+  straightforward string comparison in test assertions.
+
+  3. README.md
+  Minor cleanup merged from remote: condensed the feature list and removed
+  redundant lines (5 insertions, 13 deletions), no functional changes.
+
 # v0.0.17
 
   1. tuix/markdown.go

@@ -93,12 +93,12 @@ func parseMarkdownBlocks(markdown string) []markdownBlock {
 
 		if strings.HasPrefix(trimmed, "```") {
 			code := make([]string, 0)
+			fenceLen := markdownFenceLength(trimmed)
 			i++
-			fenceLen := len(trimmed)
 			foundClosing := false
 			for i < len(input) {
 				line := strings.TrimSpace(input[i])
-				if strings.HasPrefix(line, "```") && len(line) >= fenceLen {
+				if isMarkdownClosingFence(line, fenceLen) {
 					foundClosing = true
 					i++
 					break
@@ -228,6 +228,26 @@ func parseMarkdownHeading(line string) (int, string, bool) {
 		return 0, "", false
 	}
 	return level, strings.TrimSpace(line[level+1:]), true
+}
+
+func markdownFenceLength(line string) int {
+	count := 0
+	for count < len(line) && line[count] == '`' {
+		count++
+	}
+	return count
+}
+
+func isMarkdownClosingFence(line string, openingLen int) bool {
+	if openingLen < 3 || len(line) < openingLen {
+		return false
+	}
+	for i := 0; i < openingLen; i++ {
+		if line[i] != '`' {
+			return false
+		}
+	}
+	return strings.TrimSpace(line[openingLen:]) == ""
 }
 
 func isMarkdownRule(line string) bool {
@@ -707,9 +727,6 @@ func splitMarkdownWords(span markdownSpan) []markdownLine {
 	var current markdownLine
 	for _, r := range span.text {
 		cell := markdownCell{r: r, style: span.style}
-		if span.strikethrough && r != ' ' {
-			cell.r = '̶'
-		}
 		if unicode.IsSpace(r) {
 			if len(current) > 0 {
 				words = append(words, current)
