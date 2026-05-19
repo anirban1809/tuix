@@ -153,6 +153,25 @@ func buildLayoutTree(element Element) *LayoutNode {
 			l.WidthSizing = Fixed(widest)
 			l.HeightSizing = Fixed(len(lines))
 		}
+	case ElementMarkdown:
+		// Markdown always grows to fill available width
+		l.WidthSizing = Grow(1)
+		l.HeightSizing = Fit()
+		markdownText := element.MarkdownText
+		baseStyle := element.Style
+		// Reflow callback re-parses markdown with the actual width
+		l.reflow = func(width int) int {
+			if width <= 0 || markdownText == "" {
+				return 1
+			}
+			lines := renderMarkdownLines(markdownText, width, baseStyle)
+			return len(lines)
+		}
+		// Set initial intrinsic height (width is 0 for Grow, computed during layout)
+		l.intrinsicHeight = 1
+		if len(element.Markdown.Lines) > 0 {
+			l.intrinsicHeight = len(element.Markdown.Lines)
+		}
 	}
 
 	for _, child := range element.Children {
@@ -209,6 +228,28 @@ func paint(element Element, rects []Rect, idx int, screen *Screen, parentStyle S
 				}
 				screen.SetCell(x, y, ch, effective)
 				x += RuneWidth(ch)
+			}
+		}
+	case ElementMarkdown:
+		// Always re-parse markdown with actual width for proper wrapping
+		lines := element.Markdown.Lines
+		if element.MarkdownText != "" && rect.Width > 0 {
+			lines = renderMarkdownLines(element.MarkdownText, rect.Width, element.Style)
+		}
+		for i, line := range lines {
+			y := rect.Y + i
+			if y >= rect.Y+rect.Height {
+				break
+			}
+			x := rect.X
+			for _, cell := range line {
+				if x >= rect.X+rect.Width {
+					break
+				}
+				// Merge the cell's own style with the inherited style
+				cellStyle := mergeStyles(effective, cell.style)
+				screen.SetCell(x, y, cell.r, cellStyle)
+				x += RuneWidth(cell.r)
 			}
 		}
 	}

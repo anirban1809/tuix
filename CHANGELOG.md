@@ -1,3 +1,55 @@
+# v0.0.17
+
+  1. tuix/markdown.go
+  New file: a self-contained markdown parser and renderer that converts a
+  markdown string into a grid of per-character styled cells ready for the
+  tuix paint pass. Block-level parsing covers ATX headings (# through ######),
+  fenced code blocks (``` ... ```), horizontal rules (---, ***, ___), blockquotes
+  (>), ordered and unordered lists (including task checkboxes [ ] and [x]),
+  GitHub-flavored tables (pipe syntax with separator row), and paragraphs
+  (multi-line input is joined with soft wrapping). Inline parsing covers bold
+  (**text**, __text__), italic (*text*, _text_), inline code (`text`),
+  strikethrough (~~text~~), and links ([label](url) rendered as "label (url)").
+  Each parsed span carries its own Style, enabling mixed bold/italic/code styles
+  within a single wrapped paragraph. The public surface is a single
+  renderMarkdownLines(markdown string, width int, base Style) []markdownLine
+  function used by the renderer; all other types and helpers are unexported.
+  Visual conventions: headings are cyan+bold; blockquotes are bright-black+italic
+  with a "│ " rail; code blocks are blue with two-space indent; inline code and
+  links are cyan (links also underlined); table headers are cyan+bold; separators
+  and rules are bright-black.
+
+  2. tuix/node.go
+  Added MarkdownContent struct (holds []markdownLine) and two new fields on
+  Element: Markdown MarkdownContent (the pre-parsed cell grid) and MarkdownText
+  string (the raw source for re-parsing during layout reflow). These are zero-
+  valued for all non-markdown elements so existing callers are unaffected.
+
+  3. tuix/elements.go
+  Added ElementMarkdown constant to the ElementType iota. Added Markdown(markdown
+  string, style Style) Element constructor that pre-parses the source at a default
+  width of 80 (used as a placeholder until the layout engine supplies the real
+  width during reflow) and stores both the parsed Lines and the raw MarkdownText.
+
+  4. tuix/renderer.go
+  - In buildLayoutTree for ElementMarkdown: sets WidthSizing = Grow(1) and
+    HeightSizing = Fit() so the element fills its container horizontally and sizes
+    vertically to its content. Registers a reflow callback that re-parses the
+    markdown at the actual layout width and returns the resulting line count,
+    feeding the two-pass layout loop that already handles WrappedText. Initial
+    intrinsicHeight is taken from the pre-parsed Lines length (or 1 as a safe
+    fallback).
+  - In paint for ElementMarkdown: re-parses the markdown at rect.Width (the
+    authoritative post-layout width) to get per-cell styled lines, then walks
+    each line top-to-bottom, merging each cell's own style with the inherited
+    parent style via mergeStyles before calling screen.SetCell.
+
+  5. examples/markdown/main.go
+  New runnable example that reads a markdown file from disk and renders it with
+  the Markdown element inside a padded, full-width column. Demonstrates that
+  Markdown integrates with the standard Box/Props layout system without any
+  special handling.
+
 # v0.0.16
 
   1. DOCS.md

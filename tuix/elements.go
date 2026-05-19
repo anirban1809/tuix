@@ -4,6 +4,7 @@ const (
 	ElementBox ElementType = iota
 	ElementText
 	ElementMultilineText
+	ElementMarkdown
 	ElementComponent
 )
 
@@ -77,5 +78,19 @@ func If(condition bool, choice1 Element, choice2 Element) Element {
 		return choice1
 	} else {
 		return choice2
+	}
+}
+
+// Markdown renders a markdown string with rich formatting including headers,
+// bold, italic, code, links, lists, blockquotes, and tables. The content fills
+// its container's available width and wraps automatically.
+func Markdown(markdown string, style Style) Element {
+	width := 80 // default width, will be recalculated during layout
+	lines := renderMarkdownLines(markdown, width, style)
+	return Element{
+		Type:          ElementMarkdown,
+		Markdown:      MarkdownContent{Lines: lines},
+		MarkdownText:  markdown,
+		Style:         style,
 	}
 }

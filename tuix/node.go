@@ -1,5 +1,12 @@
 package tuix
 
+// ElementMarkdown is a marker type used to distinguish markdown content
+// from regular text elements. It carries pre-parsed markdown cells that
+// include per-character styling (colors, bold, italic, etc.).
+type MarkdownContent struct {
+    Lines []markdownLine
+}
+
 type ElementType int
 
 type Props struct {
@@ -31,6 +38,8 @@ type Element struct {
 	Children []Element
 	Render   func(props Element) Element
 	Props    Props
+	Markdown     MarkdownContent
+	MarkdownText string // raw markdown string for re-parsing during layout
 }
 
 type LayoutProps struct {
