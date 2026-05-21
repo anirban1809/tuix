@@ -55,8 +55,6 @@ func Input(
 	value string,
 	onChange func(value string),
 ) tuix.Element {
-	const fieldWidth = 22
-
 	runes := []rune(value)
 
 	// Cursor position is the insertion point: 0..len(runes)
@@ -123,47 +121,15 @@ func Input(
 		fieldStyle = tuix.NewStyle().Foreground(tuix.BrightBlack)
 	}
 
-	if !focused {
-		display := value
-		for len([]rune(display)) < fieldWidth {
-			display += " "
+	var display string
+	if focused {
+		if pos < len(runes) {
+			display = string(runes[:pos]) + "█" + string(runes[pos+1:])
+		} else {
+			display = string(runes) + "█"
 		}
-		return tuix.Box(
-			tuix.Props{
-				Direction: tuix.Row,
-				Width:     tuix.Grow(1),
-				Align:     tuix.AlignStart,
-			},
-			tuix.NewStyle(),
-			tuix.Text(label+" ", tuix.NewStyle().Foreground(tuix.White)),
-			tuix.Text(display, fieldStyle),
-		)
-	}
-
-	// Focused: split into three segments so the character at pos is styled
-	// with an inverted block cursor, keeping it visible beneath the cursor.
-	cursorStyle := tuix.NewStyle().Foreground(tuix.Black).Background(tuix.White)
-	var before, cursorChar, after string
-	if pos < len(runes) {
-		before = string(runes[:pos])
-		cursorChar = string(runes[pos : pos+1])
-		after = string(runes[pos+1:])
 	} else {
-		before = string(runes)
-		cursorChar = " "
-		after = ""
-	}
-
-	totalLen := len(
-		[]rune(before),
-	) + len(
-		[]rune(cursorChar),
-	) + len(
-		[]rune(after),
-	)
-	for totalLen < fieldWidth {
-		after += " "
-		totalLen++
+		display = value
 	}
 
 	return tuix.Box(
@@ -174,9 +140,7 @@ func Input(
 		},
 		tuix.NewStyle(),
 		tuix.Text(label+" ", tuix.NewStyle().Foreground(tuix.White)),
-		tuix.Text(before, fieldStyle),
-		tuix.Text(cursorChar, cursorStyle),
-		tuix.Text(after, fieldStyle),
+		tuix.WrappedText(display, fieldStyle),
 	)
 }
 

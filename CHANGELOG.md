@@ -1,3 +1,15 @@
+# v0.0.23
+
+  1. tuix/components/interactive.go
+  Replaced the three-segment Text renderer (before / cursorChar / after) with a
+  single tuix.WrappedText so long field values wrap instead of being clipped at
+  the container boundary. The hardcoded minimum-width constant (fieldWidth = 22)
+  is removed; element sizing is now fully delegated to the layout engine's
+  reflow pass. The block cursor is embedded directly in the display string as
+  the Unicode full-block character (█) inserted at pos for mid-text positions,
+  or appended for the end-of-text case. This removes the dependency on per-
+  character style overrides, which a single WrappedText node cannot provide.
+
 # v0.0.22
 
   1. tuix/components/interactive.go
