@@ -25,10 +25,10 @@ func App(props tuix.Props) tuix.Element {
 			Top: true, Right: true, Bottom: true, Left: true,
 			Chars: tuix.BorderRounded, Color: tuix.BrightYellow,
 		}),
-		// Input(label, cursor, focused, value, onChange).
+		// Input(label, focused, value, onChange).
 		// focused=true here because there's only one field; in a real
 		// form you'd track focus with another UseState.
-		components.Input("name>", "▌", true, value, setValue),
+		components.Input("name>", true, value, setValue),
 	)
 
 	preview := tuix.Box(

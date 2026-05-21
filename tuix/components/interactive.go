@@ -51,26 +51,69 @@ func Button(label string, focused bool) tuix.Element {
 // Input renders a labeled text field. Shows a custom cursor when focused.
 func Input(
 	label string,
-	cursor string,
 	focused bool,
 	value string,
 	onChange func(value string),
 ) tuix.Element {
 	const fieldWidth = 22
 
-	if focused {
-		if tuix.CurrentKey.Code == tuix.KeyBackspace {
-			if len(value) > 0 {
-				onChange(value[:len(value)-1])
-			}
-		} else if tuix.CurrentKey.Code == tuix.KeySpace {
-			onChange(value + " ")
-		} else if tuix.CurrentKey.Code == tuix.KeyPaste {
-			onChange(value + sanitizePaste(tuix.CurrentKey.Paste))
-		} else if tuix.CurrentKey.Rune != 0 {
-			onChange(value + string(tuix.CurrentKey.Rune))
-		}
+	runes := []rune(value)
 
+	// Cursor position is the insertion point: 0..len(runes)
+	pos, setPos := tuix.UseState(len(runes))
+	clamped := pos
+	if clamped < 0 {
+		clamped = 0
+	}
+	if clamped > len(runes) {
+		clamped = len(runes)
+	}
+	if clamped != pos {
+		setPos(clamped)
+		pos = clamped
+	}
+
+	if focused {
+		switch tuix.CurrentKey.Code {
+		case tuix.KeyLeft:
+			if pos > 0 {
+				setPos(pos - 1)
+			}
+		case tuix.KeyRight:
+			if pos < len(runes) {
+				setPos(pos + 1)
+			}
+		case tuix.KeyBackspace:
+			if pos > 0 {
+				newRunes := append([]rune{}, runes[:pos-1]...)
+				newRunes = append(newRunes, runes[pos:]...)
+				onChange(string(newRunes))
+				setPos(pos - 1)
+			}
+		case tuix.KeySpace:
+			newRunes := append([]rune{}, runes[:pos]...)
+			newRunes = append(newRunes, ' ')
+			newRunes = append(newRunes, runes[pos:]...)
+			onChange(string(newRunes))
+			setPos(pos + 1)
+		case tuix.KeyPaste:
+			insert := []rune(sanitizePaste(tuix.CurrentKey.Paste))
+			if len(insert) > 0 {
+				newRunes := append([]rune{}, runes[:pos]...)
+				newRunes = append(newRunes, insert...)
+				newRunes = append(newRunes, runes[pos:]...)
+				onChange(string(newRunes))
+				setPos(pos + len(insert))
+			}
+		default:
+			if tuix.CurrentKey.Rune != 0 {
+				newRunes := append([]rune{}, runes[:pos]...)
+				newRunes = append(newRunes, tuix.CurrentKey.Rune)
+				newRunes = append(newRunes, runes[pos:]...)
+				onChange(string(newRunes))
+				setPos(pos + 1)
+			}
+		}
 	}
 
 	var fieldStyle tuix.Style
@@ -80,11 +123,60 @@ func Input(
 		fieldStyle = tuix.NewStyle().Foreground(tuix.BrightBlack)
 	}
 
+	if !focused {
+		display := value
+		for len([]rune(display)) < fieldWidth {
+			display += " "
+		}
+		return tuix.Box(
+			tuix.Props{
+				Direction: tuix.Row,
+				Width:     tuix.Grow(1),
+				Align:     tuix.AlignStart,
+			},
+			tuix.NewStyle(),
+			tuix.Text(label+" ", tuix.NewStyle().Foreground(tuix.White)),
+			tuix.Text(display, fieldStyle),
+		)
+	}
+
+	// Focused: split into three segments so the character at pos is styled
+	// with an inverted block cursor, keeping it visible beneath the cursor.
+	cursorStyle := tuix.NewStyle().Foreground(tuix.Black).Background(tuix.White)
+	var before, cursorChar, after string
+	if pos < len(runes) {
+		before = string(runes[:pos])
+		cursorChar = string(runes[pos : pos+1])
+		after = string(runes[pos+1:])
+	} else {
+		before = string(runes)
+		cursorChar = " "
+		after = ""
+	}
+
+	totalLen := len(
+		[]rune(before),
+	) + len(
+		[]rune(cursorChar),
+	) + len(
+		[]rune(after),
+	)
+	for totalLen < fieldWidth {
+		after += " "
+		totalLen++
+	}
+
 	return tuix.Box(
-		tuix.Props{Direction: tuix.Row, Width: tuix.Grow(1), Align: tuix.AlignStart},
+		tuix.Props{
+			Direction: tuix.Row,
+			Width:     tuix.Grow(1),
+			Align:     tuix.AlignStart,
+		},
 		tuix.NewStyle(),
 		tuix.Text(label+" ", tuix.NewStyle().Foreground(tuix.White)),
-		tuix.WrappedText(value+cursor, fieldStyle),
+		tuix.Text(before, fieldStyle),
+		tuix.Text(cursorChar, cursorStyle),
+		tuix.Text(after, fieldStyle),
 	)
 }
 

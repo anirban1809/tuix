@@ -1,3 +1,27 @@
+# v0.0.22
+
+  1. tuix/components/interactive.go
+  Rewrote Input with a mid-field cursor and block-cursor renderer. Removed the
+  cursor string parameter; cursor position is now tracked internally via
+  UseState (0..len(runes)). Left/Right arrow keys move the insertion point;
+  Backspace, Space, typed runes, and paste all operate at pos rather than always
+  appending to the end. The field is rendered as three separate Text segments
+  (before / cursor cell / after): the character at pos is drawn with inverted
+  colours (Black fg, White bg) as a block cursor; at end-of-text a highlighted
+  space is emitted so the cursor remains visible there too.
+
+  2. main.go
+  Added InputDemo component that exercises the cursor-aware Input field with a
+  usage hint ("use ←/→ to move cursor; type/paste inserts at cursor"), and
+  wired it into the App layout between the sibling cards and the footer.
+  Theme-toggle key changed from Space to 't', and the footer hint updated from
+  "space to toggle" to "t to toggle".
+
+  3. examples/input/main.go
+  Updated the components.Input call to remove the now-deleted cursor argument,
+  and updated the inline comment to reflect the new four-argument signature
+  (label, focused, value, onChange).
+
 # v0.0.21
 
   1. tuix/runtime.go

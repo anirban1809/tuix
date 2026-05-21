@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/anirban1809/tuix/tuix"
+	"github.com/anirban1809/tuix/tuix/components"
 )
 
 // Theme is the value carried by ThemeContext. Components anywhere in the
@@ -36,7 +37,11 @@ var ThemeContext = tuix.CreateContext(lightTheme)
 func Header() tuix.Element {
 	t := tuix.UseContext(ThemeContext)
 	return tuix.Box(
-		tuix.Props{Direction: tuix.Row, Padding: [4]int{0, 1, 0, 1}, Width: tuix.Grow(1)},
+		tuix.Props{
+			Direction: tuix.Row,
+			Padding:   [4]int{0, 1, 0, 1},
+			Width:     tuix.Grow(1),
+		},
 		tuix.NewStyle().Foreground(t.Accent).Bold(true),
 		tuix.Text("◆ tuix context demo", tuix.Style{}),
 	)
@@ -47,7 +52,11 @@ func Header() tuix.Element {
 func Card(title, body string) tuix.Element {
 	t := tuix.UseContext(ThemeContext)
 	return tuix.Box(
-		tuix.Props{Direction: tuix.Column, Padding: [4]int{0, 1, 0, 1}, Width: tuix.Grow(1)},
+		tuix.Props{
+			Direction: tuix.Column,
+			Padding:   [4]int{0, 1, 0, 1},
+			Width:     tuix.Grow(1),
+		},
 		tuix.NewStyle().Foreground(t.Fg).Background(t.Bg).Border(tuix.Border{
 			Top: true, Right: true, Bottom: true, Left: true,
 			Chars: tuix.BorderRounded,
@@ -61,14 +70,28 @@ func Card(title, body string) tuix.Element {
 func Footer() tuix.Element {
 	t := tuix.UseContext(ThemeContext)
 	return tuix.Text(
-		"theme: "+t.Name+" · space to toggle · q to quit",
+		"theme: "+t.Name+" · t to toggle · q to quit",
 		tuix.NewStyle().Foreground(t.Accent),
+	)
+}
+
+func InputDemo() tuix.Element {
+	value, setValue := tuix.UseState("edit me")
+
+	return tuix.Box(
+		tuix.Props{Direction: tuix.Column, Gap: 1, Width: tuix.Grow(1)},
+		tuix.NewStyle(),
+		tuix.Text(
+			"Input demo: use ←/→ to move cursor; type/paste inserts at cursor",
+			tuix.NewStyle().Foreground(tuix.BrightBlack),
+		),
+		components.Input(">", true, value, setValue),
 	)
 }
 
 func App(props tuix.Props) tuix.Element {
 	dark, setDark := tuix.UseState(false)
-	if tuix.CurrentKey.Code == tuix.KeySpace {
+	if tuix.CurrentKey.Rune == 't' {
 		setDark(!dark)
 	}
 	if tuix.CurrentKey.Rune == 'q' {
@@ -95,8 +118,15 @@ func App(props tuix.Props) tuix.Element {
 			},
 			tuix.NewStyle(),
 			Header(),
-			Card("State of the world", "Both cards below consume the same ThemeContext."),
-			Card("Sibling card", "Toggle the theme; both update without taking a theme prop."),
+			Card(
+				"State of the world",
+				"Both cards below consume the same ThemeContext.",
+			),
+			Card(
+				"Sibling card",
+				"Toggle the theme; both update without taking a theme prop.",
+			),
+			InputDemo(),
 			Footer(),
 		)
 	})
