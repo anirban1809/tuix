@@ -47,12 +47,28 @@ func TestMarkdownListAllowsUpToThreeSpacesIndent(t *testing.T) {
 	lines := renderMarkdownLines("   - item", 80, Style{})
 
 	got := markdownLinesText(lines)
-	want := []string{"• item"}
+	want := []string{"   • item"}
 	if len(got) != len(want) {
 		t.Fatalf("expected %d lines, got %d: %#v", len(want), len(got), got)
 	}
 	if got[0] != want[0] {
 		t.Fatalf("expected %q, got %q", want[0], got[0])
+	}
+}
+
+func TestMarkdownNestedListPreservesIndent(t *testing.T) {
+	md := "- top\n  - nested"
+	lines := renderMarkdownLines(md, 80, Style{})
+
+	got := markdownLinesText(lines)
+	want := []string{"• top", "  • nested"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %d lines, got %d: %#v", len(want), len(got), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("line %d: expected %q, got %q", i, want[i], got[i])
+		}
 	}
 }
 

@@ -5,17 +5,50 @@ import (
 )
 
 func App(props tuix.Props) tuix.Element {
-	const sample = `# Markdown example
+	const sample = `# Markdown Example
 
-Normal list:
+## Nested lists (the fix)
 
-- parsed bullet
-1. parsed ordered item
+- Backend
+  - Node.js
+    - Express
+  - Database
+    - PostgreSQL
+- Frontend
+  - React
 
-Indented output:
+## Ordered nested list
 
-    - not a list
-    1. not ordered
+1. Install dependencies
+   1. Run ` + "`npm install`" + `
+   2. Run ` + "`go mod tidy`" + `
+2. Start the server
+
+## Indent boundary (3 spaces = list, 4 spaces = paragraph)
+
+   - three spaces: still a bullet
+    - four spaces: treated as paragraph text
+
+## Inline styles in nested items
+
+- **Bold** parent
+  - *italic* child with ` + "`inline code`" + ` ffdsa
+  - ~~strikethrough~~ child
+
+## Task list
+
+- [ ] unfinished item
+  - [x] finished sub-item
+  - [ ] another sub-item
+- [x] done
+
+## Mixed ordered / unordered nesting
+
+1. First step
+   - detail A
+   - detail B
+2. Second step
+   - detail C
 `
 
 	return tuix.Box(

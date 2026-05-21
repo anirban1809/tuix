@@ -1,3 +1,37 @@
+# v0.0.20
+
+  1. tuix/markdown.go
+  Fixed nested list indentation: deeply-nested items (4+ spaces of leading
+  indent) were incorrectly rejected when encountered inside a list because the
+  flat parser applied the document-level "4 spaces = indented code block" rule
+  unconditionally. The fix threads a single boolean of context through the
+  parser. A new lastWasList bool in parseMarkdownBlocks is set true whenever a
+  list item is appended and reset to false on every blank line. This flag is
+  passed to parseMarkdownListItem as inList; the 3-space cap is only enforced
+  when inList is false (document top level). The paragraph look-ahead check
+  always passes inList=false, so 4-space-indented lines inside a paragraph
+  block still fold into the paragraph rather than breaking it. Two structural
+  additions support rendering: a new depth int field on markdownBlock stores the
+  raw leading-space count from the original line, and renderMarkdownBlock
+  prepends strings.Repeat(" ", block.depth) to the bullet prefix so that
+  "  - nested" renders as "  • nested" and "    - deep" as "    • deep".
+
+  2. tuix/markdown_test.go
+  Updated TestMarkdownListAllowsUpToThreeSpacesIndent: the expected output is
+  now "   • item" (with the three leading spaces preserved) rather than "• item",
+  reflecting that depth is now kept through to the render. Added
+  TestMarkdownNestedListPreservesIndent: verifies that "- top\n  - nested"
+  produces ["• top", "  • nested"] with correct 2-space indentation on the
+  child bullet.
+
+  3. examples/markdown/main.go
+  Replaced the minimal two-item sample with a six-section verification document
+  covering: multi-level unordered nesting (Backend/Node.js/Express), ordered
+  nested lists with inline code, the 3-vs-4 space indent boundary, inline styles
+  (bold/italic/code/strikethrough) inside nested items, task-list checkboxes at
+  two depths, and mixed ordered/unordered nesting. The example now doubles as a
+  visual regression check for every list-parsing feature in one run.
+
 # v0.0.19
 
   1. tuix/markdown.go

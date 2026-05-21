@@ -22,6 +22,7 @@ type markdownBlock struct {
 	kind    markdownBlockKind
 	text    string
 	level   int
+	depth   int
 	ordered bool
 	number  int
 	task    int
@@ -82,11 +83,13 @@ func parseMarkdownBlocks(markdown string) []markdownBlock {
 	markdown = strings.ReplaceAll(markdown, "\r", "\n")
 	input := strings.Split(markdown, "\n")
 	blocks := make([]markdownBlock, 0)
+	lastWasList := false
 
 	for i := 0; i < len(input); {
 		line := input[i]
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
+			lastWasList = false
 			i++
 			continue
 		}
@@ -178,11 +181,13 @@ func parseMarkdownBlocks(markdown string) []markdownBlock {
 			continue
 		}
 
-		if item, ok := parseMarkdownListItem(line); ok {
+		if item, ok := parseMarkdownListItem(line, lastWasList); ok {
 			blocks = append(blocks, item)
+			lastWasList = true
 			i++
 			continue
 		}
+		lastWasList = false
 
 		parts := []string{trimmed}
 		i++
@@ -201,7 +206,7 @@ func parseMarkdownBlocks(markdown string) []markdownBlock {
 			if _, ok := parseMarkdownQuote(next); ok {
 				break
 			}
-			if _, ok := parseMarkdownListItem(input[i]); ok {
+			if _, ok := parseMarkdownListItem(input[i], false); ok {
 				break
 			}
 			parts = append(parts, next)
@@ -281,12 +286,12 @@ func parseMarkdownQuote(line string) (string, bool) {
 	return strings.TrimSpace(strings.TrimPrefix(line, ">")), true
 }
 
-func parseMarkdownListItem(line string) (markdownBlock, bool) {
+func parseMarkdownListItem(line string, inList bool) (markdownBlock, bool) {
 	indent := 0
 	for indent < len(line) && line[indent] == ' ' {
 		indent++
 	}
-	if indent > 3 {
+	if !inList && indent > 3 {
 		return markdownBlock{}, false
 	}
 	line = line[indent:]
@@ -296,9 +301,10 @@ func parseMarkdownListItem(line string) (markdownBlock, bool) {
 		text := strings.TrimSpace(line[2:])
 		task, rest := parseMarkdownTask(text)
 		return markdownBlock{
-			kind: markdownListItem,
-			text: rest,
-			task: task,
+			kind:  markdownListItem,
+			text:  rest,
+			task:  task,
+			depth: indent,
 		}, true
 	}
 
@@ -322,6 +328,7 @@ func parseMarkdownListItem(line string) (markdownBlock, bool) {
 		ordered: true,
 		number:  n,
 		task:    task,
+		depth:   indent,
 	}, true
 }
 
@@ -407,7 +414,7 @@ func renderMarkdownBlock(
 			width,
 		)
 	case markdownListItem:
-		prefix := markdownListPrefix(block)
+		prefix := strings.Repeat(" ", block.depth) + markdownListPrefix(block)
 		return wrapMarkdownSpans(
 			parseMarkdownInline(block.text, base),
 			prefix,
