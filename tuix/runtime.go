@@ -38,8 +38,23 @@ func NewApp(width, height int) *App {
 var ticker = make(chan bool, 1)
 var CurrentTick bool = false
 
+var exitCh = make(chan struct{}, 1)
+
+// Exit requests the running application to stop gracefully.
+func Exit() {
+	select {
+	case exitCh <- struct{}{}:
+	default:
+	}
+}
+
 func (a *App) Run(fn func(props Props) Element, props Props) {
 	a.Render(fn, props)
+
+	select {
+	case <-exitCh:
+	default:
+	}
 
 	quit := make(chan struct{})
 	var quitOnce sync.Once
@@ -83,6 +98,8 @@ func (a *App) Run(fn func(props Props) Element, props Props) {
 		case <-quit:
 			a.screen.Stop()
 			return
+		case <-exitCh:
+			requestQuit()
 		case key := <-Keys:
 			CurrentKey = key
 			a.Render(fn, props)

@@ -61,7 +61,7 @@ func Card(title, body string) tuix.Element {
 func Footer() tuix.Element {
 	t := tuix.UseContext(ThemeContext)
 	return tuix.Text(
-		"theme: "+t.Name+" · space to toggle · ctrl-c to quit",
+		"theme: "+t.Name+" · space to toggle · q to quit",
 		tuix.NewStyle().Foreground(t.Accent),
 	)
 }
@@ -70,6 +70,9 @@ func App(props tuix.Props) tuix.Element {
 	dark, setDark := tuix.UseState(false)
 	if tuix.CurrentKey.Code == tuix.KeySpace {
 		setDark(!dark)
+	}
+	if tuix.CurrentKey.Rune == 'q' {
+		tuix.Exit()
 	}
 
 	current := lightTheme

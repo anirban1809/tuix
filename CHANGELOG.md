@@ -1,3 +1,25 @@
+# v0.0.21
+
+  1. tuix/runtime.go
+  Added a package-level Exit() function that allows any component, effect, or
+  goroutine to request a graceful application shutdown without relying on
+  Ctrl+C. The mechanism is a buffered channel (exitCh, capacity 1) whose
+  sender uses a select/default so that repeated calls are safe no-ops rather
+  than blocks. The Run event loop gains a new case <-exitCh branch that calls
+  the existing requestQuit closure, routing the shutdown through the same
+  sync.Once-guarded path as Ctrl+C so screen.Stop() is called exactly once
+  regardless of how many exit signals arrive. A non-blocking drain of exitCh
+  is performed at the top of Run so that a signal sent before Run started
+  (e.g. from a previous App run in the same process) does not immediately
+  quit the new session.
+
+  2. main.go
+  Updated the demo to exercise tuix.Exit(): pressing q now calls tuix.Exit()
+  directly from the App component body, demonstrating that shutdown can be
+  triggered from within a component's render logic rather than only via
+  Ctrl+C. The footer hint is updated from "ctrl-c to quit" to "q to quit"
+  to reflect the new exit path.
+
 # v0.0.20
 
   1. tuix/markdown.go
