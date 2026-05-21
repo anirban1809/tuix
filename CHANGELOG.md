@@ -1,3 +1,36 @@
+# v0.0.19
+
+  1. tuix/markdown.go
+  Fixed three related bugs in the list-item parser and word splitter.
+  (a) parseMarkdownListItem now strips leading spaces before testing for a
+  list marker and rejects any line with four or more leading spaces (CommonMark
+  §5.3: four spaces of indentation makes a code block, not a list). This
+  prevents indented output lines such as "    - item" from being consumed as
+  list bullets. (b) The ordered-list number detection was rewritten to scan
+  digit-by-digit rather than using strings.IndexByte('.'), which could match a
+  dot embedded mid-line (e.g. a decimal in a paragraph). The new loop requires
+  at least one digit, no more than nine (matching CommonMark's 9-digit cap),
+  and a dot followed by a space. (c) The paragraph-break test in
+  parseMarkdownBlocks now passes the raw input line (not the trimmed copy) to
+  parseMarkdownListItem so that the indent check fires correctly for look-ahead
+  lines too. (d) Fixed a double-space accumulation bug in splitMarkdownWords:
+  the guard that appended a space cell now also checks that the last word is not
+  already a lone space, preventing runs of two or more space cells between words
+  when multiple whitespace runes appear in succession.
+
+  2. tuix/markdown_test.go
+  Added two regression tests. TestMarkdownIndentedListMarkersStayParagraph
+  verifies that "    - not a list" and "    1. not ordered" (four-space indent)
+  are joined into a single paragraph rather than parsed as list items.
+  TestMarkdownListAllowsUpToThreeSpacesIndent verifies the complementary case:
+  "   - item" (three spaces) still renders as a bullet "• item".
+
+  3. examples/markdown/main.go
+  Replaced the hard-coded absolute file path (a local benchmark report) with a
+  self-contained inline sample string that exercises indented-code-block
+  detection alongside normal and ordered lists. The example now runs
+  portably on any machine without a matching file on disk.
+
 # v0.0.18
 
   1. tuix/markdown.go

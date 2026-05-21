@@ -1,15 +1,22 @@
 package main
 
 import (
-	"os"
-
 	"github.com/anirban1809/tuix/tuix"
 )
 
 func App(props tuix.Props) tuix.Element {
-	f, _ := os.ReadFile(
-		"/Users/anirban/Documents/Code/zipcode-benchmarks/reports/20260518T195338Z/report.md",
-	)
+	const sample = `# Markdown example
+
+Normal list:
+
+- parsed bullet
+1. parsed ordered item
+
+Indented output:
+
+    - not a list
+    1. not ordered
+`
 
 	return tuix.Box(
 		tuix.Props{
@@ -19,7 +26,7 @@ func App(props tuix.Props) tuix.Element {
 			Width:     tuix.Grow(1),
 		},
 		tuix.NewStyle(),
-		tuix.Markdown(string(f), tuix.NewStyle()),
+		tuix.Markdown(sample, tuix.NewStyle()),
 	)
 }
 

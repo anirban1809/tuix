@@ -30,6 +30,32 @@ func TestMarkdownStrikethroughKeepsText(t *testing.T) {
 	}
 }
 
+func TestMarkdownIndentedListMarkersStayParagraph(t *testing.T) {
+	lines := renderMarkdownLines("Command output:\n    - not a list\n    1. not ordered", 80, Style{})
+
+	got := markdownLinesText(lines)
+	want := []string{"Command output: - not a list 1. not ordered"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %d lines, got %d: %#v", len(want), len(got), got)
+	}
+	if got[0] != want[0] {
+		t.Fatalf("expected %q, got %q", want[0], got[0])
+	}
+}
+
+func TestMarkdownListAllowsUpToThreeSpacesIndent(t *testing.T) {
+	lines := renderMarkdownLines("   - item", 80, Style{})
+
+	got := markdownLinesText(lines)
+	want := []string{"• item"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %d lines, got %d: %#v", len(want), len(got), got)
+	}
+	if got[0] != want[0] {
+		t.Fatalf("expected %q, got %q", want[0], got[0])
+	}
+}
+
 func markdownLinesText(lines []markdownLine) []string {
 	out := make([]string, len(lines))
 	for i, line := range lines {

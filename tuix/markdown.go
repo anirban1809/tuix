@@ -178,7 +178,7 @@ func parseMarkdownBlocks(markdown string) []markdownBlock {
 			continue
 		}
 
-		if item, ok := parseMarkdownListItem(trimmed); ok {
+		if item, ok := parseMarkdownListItem(line); ok {
 			blocks = append(blocks, item)
 			i++
 			continue
@@ -201,7 +201,7 @@ func parseMarkdownBlocks(markdown string) []markdownBlock {
 			if _, ok := parseMarkdownQuote(next); ok {
 				break
 			}
-			if _, ok := parseMarkdownListItem(next); ok {
+			if _, ok := parseMarkdownListItem(input[i]); ok {
 				break
 			}
 			parts = append(parts, next)
@@ -282,6 +282,15 @@ func parseMarkdownQuote(line string) (string, bool) {
 }
 
 func parseMarkdownListItem(line string) (markdownBlock, bool) {
+	indent := 0
+	for indent < len(line) && line[indent] == ' ' {
+		indent++
+	}
+	if indent > 3 {
+		return markdownBlock{}, false
+	}
+	line = line[indent:]
+
 	if len(line) >= 2 && (line[0] == '-' || line[0] == '*' || line[0] == '+') &&
 		line[1] == ' ' {
 		text := strings.TrimSpace(line[2:])
@@ -293,8 +302,12 @@ func parseMarkdownListItem(line string) (markdownBlock, bool) {
 		}, true
 	}
 
-	dot := strings.IndexByte(line, '.')
-	if dot <= 0 || dot+1 >= len(line) || line[dot+1] != ' ' {
+	dot := 0
+	for dot < len(line) && line[dot] >= '0' && line[dot] <= '9' {
+		dot++
+	}
+	if dot == 0 || dot > 9 || dot+1 >= len(line) || line[dot] != '.' ||
+		line[dot+1] != ' ' {
 		return markdownBlock{}, false
 	}
 	n, err := strconv.Atoi(line[:dot])
@@ -732,7 +745,8 @@ func splitMarkdownWords(span markdownSpan) []markdownLine {
 				words = append(words, current)
 				current = nil
 			}
-			if len(words) > 0 {
+			if len(words) == 0 || len(words[len(words)-1]) != 1 ||
+				words[len(words)-1][0].r != ' ' {
 				words = append(words, markdownLine{{r: ' ', style: span.style}})
 			}
 			continue
